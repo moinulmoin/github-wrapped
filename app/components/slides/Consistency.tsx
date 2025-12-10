@@ -33,7 +33,7 @@ export function Consistency({ data, onNext }: { data: WrappedData; onNext: () =>
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="text-[6rem] md:text-[10rem] font-bold leading-none text-white"
+          className="text-[4rem] md:text-[8rem] font-bold leading-none text-white"
         >
           {data.stats.longestStreak}
           <span className="text-2xl md:text-4xl text-gray-500 ml-4">DAYS</span>

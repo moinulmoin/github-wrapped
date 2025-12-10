@@ -1,26 +1,18 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { fetchUserStats, WrappedData } from "./actions/github";
 import { WrappedContainer } from "./components/WrappedContainer";
-import { ArrowRight, Loader2, Github, LogOut, Lock, Unlock } from "lucide-react";
+import { ArrowRight, Loader2, Github, Key, ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
-import { authClient } from "./lib/auth-client";
 
 export default function Home() {
   const [username, setUsername] = useState("");
+  const [token, setToken] = useState("");
+  const [showTokenInput, setShowTokenInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<WrappedData | null>(null);
   const [error, setError] = useState("");
-
-  const { data: session } = authClient.useSession();
-
-  // Auto-fill username from GitHub session
-  useEffect(() => {
-    if (session?.user?.name && !username) {
-      setUsername(session.user.name);
-    }
-  }, [session, username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,29 +22,14 @@ export default function Home() {
     setError("");
 
     try {
-      // Pass the session's name if it matches, or maybe just the token if we had it.
-      // For now, fetchUserStats uses server-side logic.
-      // Optimized: If logged in, we *could* use the user's token if we stored it,
-      // but simpler is to just let the server action handle the public data or
-      // if we upgrade fetchUserStats to use the session token later.
-      const stats = await fetchUserStats(username);
+      // Pass the optional token for private repo access
+      const stats = await fetchUserStats(username, token || undefined);
       setData(stats);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSignIn = async () => {
-      await authClient.signIn.social({
-          provider: "github",
-          callbackURL: window.location.origin
-      });
-  };
-
-  const handleSignOut = async () => {
-      await authClient.signOut();
   };
 
   if (data) {
@@ -67,32 +44,6 @@ export default function Home() {
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/10 rounded-full blur-[100px]" />
        </div>
 
-       {/* Auth Status (Top Right) */}
-       <div className="absolute top-6 right-6 z-20">
-           {!session ? (
-               <button
-                onClick={handleSignIn}
-                className="flex items-center gap-2 px-4 py-2 bg-glass-bg border border-glass-border rounded-full text-sm hover:bg-white/10 transition-colors"
-               >
-                   <Github className="w-4 h-4" /> Sign In
-               </button>
-           ) : (
-                <div className="flex items-center gap-4">
-                     <span className="text-sm text-gray-400 hidden sm:inline">
-                         <Unlock className="w-3 h-3 inline mr-1 text-neon-green" />
-                         Logged in as <span className="text-neon-green font-medium">{session.user?.name}</span>
-                     </span>
-                    <button
-                        onClick={handleSignOut}
-                        className="p-2 bg-glass-bg border border-glass-border rounded-full hover:bg-red-500/20 hover:border-red-500/50 transition-colors"
-                        title="Sign Out"
-                    >
-                        <LogOut className="w-4 h-4" />
-                    </button>
-                </div>
-           )}
-       </div>
-
        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -100,9 +51,8 @@ export default function Home() {
        >
           <div className="space-y-2">
             <h1 className="text-4xl md:text-6xl font-bold font-display tracking-tight text-white">
-              Git Wrapped <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">2025</span>
+              GitHub Wrapped <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">2025</span>
             </h1>
-
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-4">
@@ -116,6 +66,38 @@ export default function Home() {
                   className="w-full bg-glass-bg border border-glass-border rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-all"
                   autoFocus
                 />
+             </div>
+
+             {/* Optional Token Input */}
+             <div className="text-left">
+                <button
+                  type="button"
+                  onClick={() => setShowTokenInput(!showTokenInput)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  <Key className="w-3 h-3" />
+                  {showTokenInput ? "Hide" : "Add"} Personal Access Token (for private repos)
+                  {showTokenInput ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+
+                {showTokenInput && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-2"
+                  >
+                    <input
+                      type="password"
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      className="w-full bg-glass-bg border border-glass-border rounded-lg py-3 px-4 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-all"
+                    />
+                    <p className="text-[10px] text-gray-600 mt-1">
+                      Generate one at <a href="https://github.com/settings/tokens" target="_blank" className="underline hover:text-gray-400">github.com/settings/tokens</a> with <code className="text-neon-purple">repo</code> scope.
+                    </p>
+                  </motion.div>
+                )}
              </div>
 
              {error && (
@@ -141,7 +123,7 @@ export default function Home() {
 
           <div className="pt-8 text-xs text-gray-600">
             <p>Not affiliated with GitHub.</p>
-            <p>Built with Next.js 16 & Better-Auth.</p>
+            <p>Built with Next.js 16.</p>
           </div>
        </motion.div>
     </div>

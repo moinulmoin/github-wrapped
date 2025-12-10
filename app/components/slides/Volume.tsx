@@ -40,7 +40,7 @@ export function Volume({ data, onNext }: { data: WrappedData; onNext: () => void
            initial={{ scale: 0.5, opacity: 0 }}
            animate={{ scale: 1, opacity: 1 }}
            transition={{ duration: 0.5, type: "spring" }}
-           className="text-[6rem] md:text-[10rem] font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple font-display leading-none"
+           className="text-[4rem] md:text-[8rem] font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple font-display leading-none"
         >
           {count.toLocaleString()}
         </motion.div>

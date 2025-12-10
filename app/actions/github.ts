@@ -34,35 +34,9 @@ export interface WrappedData {
   };
 }
 
-import { auth } from "../lib/auth";
-import { headers } from "next/headers";
-
 export async function fetchUserStats(username: string, token?: string): Promise<WrappedData> {
-  // Attempt to get session server-side if no token is passed manually
-  let authToken = token || process.env.GITHUB_TOKEN;
-
-  if (!token) {
-      try {
-          const session = await auth.api.getSession({
-              headers: await headers()
-          });
-          if (session?.user) {
-              console.log("Session found for user:", session.user.email);
-              // Note: Better-Auth default session might NOT contain the provider access token.
-              // We would usually need to query the 'account' table or use a plugin to retrieve the stored token.
-              // For this MVP, we proceed with identity verification.
-              // If we strictly need private repos, we need to ensure we can get that token.
-              // @ts-ignore
-              const sessionToken = session.accessToken;
-              if (sessionToken) {
-                  authToken = sessionToken as string;
-                  console.log("Using OAuth Access Token from Session");
-              }
-          }
-      } catch (e) {
-          console.log("Error checking session:", e);
-      }
-  }
+  // Use provided token (user's PAT) or fall back to server environment token
+  const authToken = token || process.env.GITHUB_TOKEN;
 
   const octokit = new Octokit({
     auth: authToken,
@@ -70,7 +44,9 @@ export async function fetchUserStats(username: string, token?: string): Promise<
     retry: { enabled: false },
   });
 
-  console.log(`Starting fetch for ${username} (Auth Type: ${token ? 'Custom/User' : (process.env.GITHUB_TOKEN ? 'Server Env' : 'None')})`);
+  console.log(`Starting fetch for ${username}`);
+  console.log(`Auth Strategy: ${token ? 'User PAT (Private Access)' : (process.env.GITHUB_TOKEN ? 'Server Token' : 'No Auth')}`);
+  if (token) console.log("✅ Using User's Personal Access Token (Private/Org Access Possible)");
   try {
     // 1. Identify if we are the authenticated user
     let isMe = false;

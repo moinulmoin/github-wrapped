@@ -5,11 +5,59 @@ import { Share2, Download } from "lucide-react";
 export function Persona({ data, onNext }: { data: WrappedData; onNext: () => void }) {
 
   const getArchetype = () => {
-    const { topLanguages, totalContributions, busyDay } = data.stats;
-    if (totalContributions > 2000) return { title: "THE MACHINE", color: "text-red-500", desc: "Code flows through your veins." };
-    if (topLanguages.length > 4) return { title: "THE POLYGLOT", color: "text-neon-purple", desc: "You speak in many tongues." };
-    if (["Saturday", "Sunday"].includes(busyDay)) return { title: "THE WARRIOR", color: "text-orange-500", desc: "You battle bugs on weekends." };
-    return { title: "THE ARCHITECT", color: "text-neon-blue", desc: "You build the future, one commit at a time." };
+    const { topLanguages, totalContributions, busyDay, specifics, longestStreak } = data.stats;
+    const prs = specifics?.prs || 0;
+    const issues = specifics?.issues || 0;
+
+    if (totalContributions > 3000) return {
+        title: "THE TITAN",
+        color: "text-neon-blue",
+        desc: "Your code footprint is visible from space.",
+        explanation: "Earned by having over 3000 total contributions."
+    };
+    if (prs > 100) return {
+        title: "THE SHIPPER",
+        color: "text-green-400",
+        desc: "You don't just write code, you deliver.",
+        explanation: "Earned by merging over 100 Pull Requests."
+    };
+    if (issues > 50) return {
+        title: "THE GUARDIAN",
+        color: "text-yellow-400",
+        desc: "You keep the bugs at bay.",
+        explanation: "Earned by closing over 50 Issues."
+    };
+    if (topLanguages.length > 6) return {
+        title: "THE POLYGLOT",
+        color: "text-neon-purple",
+        desc: "You speak in many tongues.",
+        explanation: "Earned by using more than 6 languages."
+    };
+    if (topLanguages.length < 3 && totalContributions > 500) return {
+        title: "THE SPECIALIST",
+        color: "text-blue-500",
+        desc: "Master of one, feared by many.",
+        explanation: "Earned by high activity with focused language usage."
+    };
+    if (longestStreak > 30) return {
+        title: "THE SURVIVOR",
+        color: "text-orange-500",
+        desc: "Consistency is your superpower.",
+        explanation: "Earned by maintaining a commit streak over 30 days."
+    };
+    if (["Saturday", "Sunday"].includes(busyDay)) return {
+        title: "THE WARRIOR",
+        color: "text-red-500",
+        desc: "You battle bugs while others sleep.",
+        explanation: "Earned by having your busiest coding activity on weekends."
+    };
+
+    return {
+        title: "THE ARCHITECT",
+        color: "text-white",
+        desc: "Building the future, one commit at a time.",
+        explanation: "The default rank for balanced developers."
+    };
   };
 
   const archetype = getArchetype();
@@ -36,7 +84,7 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
 
           {/* Main Title - Reverted Priority */}
           <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter text-white drop-shadow-lg mb-6">
-             GIT WRAPPED
+             GITHUB WRAPPED
           </h2>
 
           {/* Avatar & Badge */}
@@ -46,15 +94,19 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
 
              {/* Rank Badge (Class Only) */}
              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-neon-green text-neon-green text-[10px] md:text-xs font-bold whitespace-nowrap z-20 shadow-neon-green/20 shadow-lg">
-                {data.stats.rank.toUpperCase()}
+                {archetype.title}
              </div>
           </div>
 
           {/* Subtitle / Desc */}
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-4 relative group/tooltip cursor-help">
              <p className={`text-base md:text-lg font-bold font-mono ${archetype.color}`}>
                 "{archetype.desc}"
              </p>
+             {/* Tooltip */}
+             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-black/90 border border-white/10 rounded text-xs text-gray-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-30">
+                {archetype.explanation}
+             </div>
           </div>
 
           {/* Contribution Graph (Mini Heatmap) */}

@@ -9,7 +9,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username } = await params;
   return {
-    title: `${username}'s Git Wrapped 2025`,
+    title: `${username}'s GitHub Wrapped 2025`,
     description: `Check out ${username}'s developer stats and persona!`,
   };
 }

@@ -10,14 +10,14 @@ export function Intro({ data, onNext }: { data: WrappedData; onNext: () => void 
         transition={{ delay: 0.2 }}
         className="text-neon-blue font-mono text-xl tracking-widest uppercase"
       >
-        Git Wrapped
+        GitHub Wrapped
       </motion.div>
 
       <motion.h1
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.5, type: "spring", bounce: 0.5 }}
-        className="text-[8rem] sm:text-[12rem] font-bold leading-none bg-gradient-to-b from-white to-white/20 bg-clip-text text-transparent select-none font-display"
+        className="text-[4rem] md:text-[8rem] font-bold leading-none bg-gradient-to-b from-white to-white/20 bg-clip-text text-transparent select-none font-display"
       >
         2025
       </motion.h1>

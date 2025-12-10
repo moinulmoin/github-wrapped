@@ -26,7 +26,7 @@ export function Rhythm({ data, onNext }: { data: WrappedData; onNext: () => void
         initial={{ scale: 0.9, opacity: 0, filter: "blur(10px)" }}
         animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
         transition={{ delay: 0.6, type: "spring" }}
-        className="text-[5rem] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 uppercase tracking-tighter"
+        className="text-[4rem] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 uppercase tracking-tighter"
       >
         {data.stats.busyDay}S
       </motion.div>

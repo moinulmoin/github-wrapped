@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Git Wrapped 2025",
+  title: "GitHub Wrapped 2025",
   description: "Your year in code.",
 };
 
