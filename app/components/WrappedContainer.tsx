@@ -7,6 +7,7 @@ import { Intro } from "./slides/Intro";
 import { Volume } from "./slides/Volume";
 import { Rhythm } from "./slides/Rhythm";
 import { Arsenal } from "./slides/Arsenal";
+import { Collaboration } from "./slides/Collaboration";
 import { Consistency } from "./slides/Consistency";
 import { Persona } from "./slides/Persona";
 import { ArrowRight, ArrowLeft } from "lucide-react";
@@ -23,6 +24,7 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
     Volume,
     Rhythm,
     Arsenal,
+    Collaboration,
     Consistency,
     Persona,
   ];

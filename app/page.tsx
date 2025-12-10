@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetchUserStats, WrappedData } from "./actions/github";
 import { WrappedContainer } from "./components/WrappedContainer";
 import { ArrowRight, Loader2, Github, LogOut, Lock, Unlock } from "lucide-react";
@@ -14,6 +14,13 @@ export default function Home() {
   const [error, setError] = useState("");
 
   const { data: session } = authClient.useSession();
+
+  // Auto-fill username from GitHub session
+  useEffect(() => {
+    if (session?.user?.name && !username) {
+      setUsername(session.user.name);
+    }
+  }, [session, username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,10 +78,10 @@ export default function Home() {
                </button>
            ) : (
                 <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-400 hidden sm:inline">
-                        <Unlock className="w-3 h-3 inline mr-1 text-neon-green" />
-                        Private Stats Unlocked
-                    </span>
+                     <span className="text-sm text-gray-400 hidden sm:inline">
+                         <Unlock className="w-3 h-3 inline mr-1 text-neon-green" />
+                         Logged in as <span className="text-neon-green font-medium">{session.user?.name}</span>
+                     </span>
                     <button
                         onClick={handleSignOut}
                         className="p-2 bg-glass-bg border border-glass-border rounded-full hover:bg-red-500/20 hover:border-red-500/50 transition-colors"
@@ -95,7 +102,7 @@ export default function Home() {
             <h1 className="text-4xl md:text-6xl font-bold font-display tracking-tight text-white">
               Git Wrapped <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">2025</span>
             </h1>
-            <p className="text-gray-400 text-lg">Discover your developer persona.</p>
+
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-4">

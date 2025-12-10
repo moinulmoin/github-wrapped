@@ -39,39 +39,72 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
              GIT WRAPPED
           </h2>
 
-          {/* Avatar */}
-          <div className="relative mb-6">
+          {/* Avatar & Badge */}
+          <div className="relative mb-4">
              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple blur-2xl opacity-50 rounded-full" />
-             <img src={data.user.avatarUrl} className="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-white/20 relative z-10" alt="Avatar" />
+             <img src={data.user.avatarUrl} className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-white/20 relative z-10" alt="Avatar" />
 
-             {/* Rank Badge overlay */}
-             <div className="absolute -bottom-2 md:-bottom-4 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-neon-green text-neon-green text-[10px] md:text-xs font-bold whitespace-nowrap z-20">
-                LVL {data.stats.level} • {archetype.title}
+             {/* Rank Badge (Class Only) */}
+             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-neon-green text-neon-green text-[10px] md:text-xs font-bold whitespace-nowrap z-20 shadow-neon-green/20 shadow-lg">
+                {data.stats.rank.toUpperCase()}
              </div>
           </div>
 
           {/* Subtitle / Desc */}
-          <div className="space-y-2 mb-6">
-             <p className={`text-lg md:text-xl font-bold font-mono ${archetype.color}`}>
+          <div className="space-y-2 mb-4">
+             <p className={`text-base md:text-lg font-bold font-mono ${archetype.color}`}>
                 "{archetype.desc}"
              </p>
           </div>
 
-          {/* Stats Summary */}
-          <div className="w-full grid grid-cols-2 gap-2 text-xs text-gray-400 border-t border-white/10 pt-4">
-             <div className="text-left">
-               <span className="block text-white font-bold">{data.stats.totalContributions}</span> Contributions
+          {/* Contribution Graph (Mini Heatmap) */}
+          <div className="w-full flex justify-center mb-4 px-2">
+             <div className="flex gap-[2px] flex-wrap justify-center opacity-80 max-w-[280px]">
+                {/* Render last ~100 days for visual flair without overwhelming DOM */}
+                {data.contributions.calendar.slice(-80).map((day, i) => (
+                    <div
+                        key={i}
+                        className={`w-2 h-2 rounded-[1px] ${
+                            day.count > 0
+                            ? (day.count > 5 ? 'bg-neon-green' : 'bg-neon-green/50')
+                            : 'bg-white/10'
+                        }`}
+                        title={`${day.date}: ${day.count}`}
+                    />
+                ))}
              </div>
-              <div className="text-right">
-                <span className="block text-white font-bold">{data.stats.topLanguages[0]?.name}</span> Main Stack
+          </div>
+
+          {/* Stats Summary Grid (Expanded) */}
+          <div className="w-full grid grid-cols-2 gap-y-3 gap-x-4 text-xs text-gray-400 border-t border-white/10 pt-4">
+               <div className="flex justify-between">
+                <span>Commits</span>
+                <span className="text-white font-bold">{data.stats.specifics?.commits || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>PRs</span>
+                <span className="text-white font-bold">{data.stats.specifics?.prs || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Issues</span>
+                <span className="text-white font-bold">{data.stats.specifics?.issues || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Streak</span>
+                <span className="text-white font-bold">{data.stats.longestStreak} Days</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Busiest</span>
+                <span className="text-white font-bold">{data.stats.busyDay}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Top Lang</span>
+                <span className="text-white font-bold">{data.stats.topLanguages[0]?.name || "-"}</span>
               </div>
 
-              {/* Secondary Stats Row */}
-              <div className="text-left mt-2 pt-2 border-t border-white/10">
-                <span className="block text-white font-bold">{data.stats.totalStars}</span> Stars Earned
-              </div>
-              <div className="text-right mt-2 pt-2 border-t border-white/10">
-                <span className="block text-white font-bold">{data.stats.longestStreak} Day</span> Streak
+              {/* Footer Stat */}
+              <div className="col-span-2 text-center mt-2 pt-2 border-t border-white/5 text-neon-blue font-mono">
+                {data.stats.totalContributions} TOTAL CONTRIBUTIONS
               </div>
           </div>
         </div>

@@ -19,15 +19,18 @@ export interface WrappedData {
     topLanguages: { name: string; count: number; color: string }[];
     totalContributions: number;
     longestStreak: number;
-    longestStreak: number;
     busyDay: string; // e.g., "Wednesday"
     busyTime: string; // e.g., "14:00"
-    level: number;
     rank: string;
+    specifics: {
+        commits: number;
+        prs: number;
+        issues: number;
+    };
   };
   contributions: {
     total: number;
-    calendar: { date: string; count: number }[];
+    calendar: { date: string; count: number; level: number }[]; // Added level for graph coloring
   };
 }
 
@@ -135,18 +138,25 @@ export async function fetchUserStats(username: string, token?: string): Promise<
     let calendar = { totalContributions: 0, weeks: [] };
     let busyDay = "N/A";
     let maxStreak = 0;
+    var commits = 0;
+    var prs = 0;
+    var issues = 0;
 
     try {
       const contributionQuery = `
         query($username: String!) {
           user(login: $username) {
             contributionsCollection {
+              totalCommitContributions
+              totalPullRequestContributions
+              totalIssueContributions
               contributionCalendar {
                 totalContributions
                 weeks {
                   contributionDays {
                     contributionCount
                     date
+                    contributionLevel
                   }
                 }
               }
@@ -159,7 +169,8 @@ export async function fetchUserStats(username: string, token?: string): Promise<
         username,
       });
       console.log('GraphQL data fetched');
-      calendar = graphqlRes.user.contributionsCollection.contributionCalendar;
+      const collection = graphqlRes.user.contributionsCollection;
+      calendar = collection.contributionCalendar;
 
       // Process calendar for streaks and busy days
       const days = calendar.weeks.flatMap((w: any) => w.contributionDays);
@@ -183,16 +194,26 @@ export async function fetchUserStats(username: string, token?: string): Promise<
           busyDay = daysOfWeek[busyDayIndex];
       }
 
+      // Store specifics
+      commits = collection.totalCommitContributions;
+      prs = collection.totalPullRequestContributions;
+      issues = collection.totalIssueContributions;
+
     } catch (gqlError) {
       console.warn("GraphQL fetch failed, falling back to basic stats:", gqlError);
-      // Fallback: Use public events to estimate (or just show 0/limit reached message)
-      // For now, we set 0 to allow the app to proceed without crashing.
+      // Fallback values
+      commits = 0;
+      prs = 0;
+      issues = 0;
     }
 
-    // 4. Calculate Level & Rank
+
+    // 4. Calculate Rank
     // Formula: (Commits * 0.1) + (Stars * 2) + (Forks * 3) + (Followers * 1) + (Repos * 1)
     const score = (calendar.totalContributions * 0.1) + (totalStars * 2) + (totalForks * 3) + (user.followers * 1) + (repos.length * 1);
-    const level = Math.max(1, Math.floor(Math.sqrt(score))); // Square root scaling for levels
+
+    // Virtual "Level" for internal scaling, but not shown to user
+    const level = Math.max(1, Math.floor(Math.sqrt(score)));
 
     let rank = "Novice Byte";
     if (level > 5) rank = "Code Explorer";
@@ -223,12 +244,20 @@ export async function fetchUserStats(username: string, token?: string): Promise<
         longestStreak: maxStreak,
         busyDay,
         busyTime: "N/A",
-        level,
         rank,
+        specifics: {
+            commits,
+            prs,
+            issues
+        }
       },
       contributions: {
         total: calendar.totalContributions,
-        calendar: calendar.weeks.flatMap((w: any) => w.contributionDays).map((d: any) => ({ date: d.date, count: d.contributionCount })),
+        calendar: calendar.weeks.flatMap((w: any) => w.contributionDays).map((d: any) => ({
+            date: d.date,
+            count: d.contributionCount,
+            level: 0 // We can map contributionLevel string to int if needed, but count is enough for heatmap
+        })),
       },
     };
 
