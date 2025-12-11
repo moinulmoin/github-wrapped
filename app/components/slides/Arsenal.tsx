@@ -41,7 +41,11 @@ export function Arsenal({ data, onNext }: { data: WrappedData; onNext: () => voi
                 initial={{ width: 0 }}
                 animate={{ width: `${(lang.count / maxCount) * 100}%` }}
                 transition={{ duration: 1, delay: index * 0.1 + 0.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-neon-blue to-neon-purple rounded-full shadow-[0_0_15px_rgba(188,19,254,0.5)]"
+                className="h-full rounded-full shadow-lg"
+                style={{
+                  backgroundColor: lang.color || '#8B5CF6',
+                  boxShadow: `0 0 15px ${lang.color || '#8B5CF6'}40`
+                }}
               />
             </div>
           </div>

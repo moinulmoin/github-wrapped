@@ -9,15 +9,17 @@ import { Rhythm } from "./slides/Rhythm";
 import { Arsenal } from "./slides/Arsenal";
 import { Collaboration } from "./slides/Collaboration";
 import { Consistency } from "./slides/Consistency";
+import { Evolution } from "./slides/Evolution";
 import { Persona } from "./slides/Persona";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
 interface WrappedContainerProps {
   data: WrappedData;
   onReset?: () => void;
+  isSharedView?: boolean;
 }
 
-export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
+export function WrappedContainer({ data, onReset, isSharedView }: WrappedContainerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const slides = [
     Intro,
@@ -26,7 +28,8 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
     Arsenal,
     Collaboration,
     Consistency,
-    Persona,
+    Evolution,  // Year-over-year comparison
+    Persona,    // Final card
   ];
 
   const CurrentSlide = slides[currentIndex];

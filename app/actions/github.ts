@@ -19,8 +19,8 @@ export interface WrappedData {
     topLanguages: { name: string; count: number; color: string }[];
     totalContributions: number;
     longestStreak: number;
-    busyDay: string; // e.g., "Wednesday"
-    busyTime: string; // e.g., "14:00"
+    busyDay: string;
+    busyTime: string;
     rank: string;
     specifics: {
         commits: number;
@@ -30,7 +30,13 @@ export interface WrappedData {
   };
   contributions: {
     total: number;
-    calendar: { date: string; count: number; level: number }[]; // Added level for graph coloring
+    calendar: { date: string; count: number; level: number }[];
+  };
+  // Year-over-year comparison (2024 vs 2025)
+  previousYear?: {
+    totalContributions: number;
+    longestStreak: number;
+    busyDay: string;
   };
 }
 
@@ -183,8 +189,63 @@ export async function fetchUserStats(username: string, token?: string): Promise<
       issues = 0;
     }
 
+    // 4. Fetch 2024 contributions for year-over-year comparison
+    let previousYear = undefined;
+    try {
+      const prev2024Query = `
+        query($username: String!) {
+          user(login: $username) {
+            contributionsCollection(from: "2024-01-01T00:00:00Z", to: "2024-12-31T23:59:59Z") {
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays {
+                    contributionCount
+                    date
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
 
-    // 4. Calculate Rank
+      const prev2024Res: any = await octokit.graphql(prev2024Query, { username });
+      const prevCalendar = prev2024Res.user.contributionsCollection.contributionCalendar;
+      const prevDays = prevCalendar.weeks.flatMap((w: any) => w.contributionDays);
+
+      // Calculate prev year streak
+      let prevStreak = 0;
+      let prevMaxStreak = 0;
+      const prevDayCounts = [0, 0, 0, 0, 0, 0, 0];
+
+      prevDays.forEach((day: any) => {
+        if (day.contributionCount > 0) {
+          prevStreak++;
+          prevMaxStreak = Math.max(prevMaxStreak, prevStreak);
+          const date = new Date(day.date);
+          prevDayCounts[date.getDay()] += day.contributionCount;
+        } else {
+          prevStreak = 0;
+        }
+      });
+
+      const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const prevBusyDayIndex = prevDayCounts.indexOf(Math.max(...prevDayCounts));
+      const prevBusyDay = Math.max(...prevDayCounts) > 0 ? daysOfWeek[prevBusyDayIndex] : "N/A";
+
+      previousYear = {
+        totalContributions: prevCalendar.totalContributions,
+        longestStreak: prevMaxStreak,
+        busyDay: prevBusyDay,
+      };
+      console.log("2024 stats fetched:", previousYear);
+    } catch (e) {
+      console.warn("Could not fetch 2024 data:", e);
+    }
+
+
+    // 5. Calculate Rank
     // Formula: (Commits * 0.1) + (Stars * 2) + (Forks * 3) + (Followers * 1) + (Repos * 1)
     const score = (calendar.totalContributions * 0.1) + (totalStars * 2) + (totalForks * 3) + (user.followers * 1) + (repos.length * 1);
 
@@ -232,9 +293,10 @@ export async function fetchUserStats(username: string, token?: string): Promise<
         calendar: calendar.weeks.flatMap((w: any) => w.contributionDays).map((d: any) => ({
             date: d.date,
             count: d.contributionCount,
-            level: 0 // We can map contributionLevel string to int if needed, but count is enough for heatmap
+            level: 0
         })),
       },
+      previousYear,
     };
 
   } catch (error) {
