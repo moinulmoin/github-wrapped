@@ -5,31 +5,44 @@ import { api } from "../../../convex/_generated/api";
 import { fetchUserStats, WrappedData } from "../../actions/github";
 import { WrappedContainer } from "../../components/WrappedContainer";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-export default function UserPage({ params }: { params: Promise<{ username: string }> }) {
+export default function UserPage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
   const [username, setUsername] = useState<string>("");
-  const [fetched, setFetched] = useState<{ username: string; data: WrappedData } | null>(null);
-  const [fetchAttemptedFor, setFetchAttemptedFor] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<{ username: string; message: string } | null>(null);
+  const [fetched, setFetched] = useState<{
+    username: string;
+    data: WrappedData;
+  } | null>(null);
+  const [fetchAttemptedFor, setFetchAttemptedFor] = useState<string | null>(
+    null,
+  );
+  const [fetchError, setFetchError] = useState<{
+    username: string;
+    message: string;
+  } | null>(null);
   const fetchInFlightFor = useRef<Set<string>>(new Set());
 
   // Unwrap params
   useEffect(() => {
-    params.then(p => setUsername(p.username));
+    params.then((p) => setUsername(p.username));
   }, [params]);
 
   // Check Convex cache
   const cachedData = useQuery(
     api.wrapped.getWrapped,
-    username ? { username } : "skip"
+    username ? { username } : "skip",
   );
   const saveWrapped = useMutation(api.wrapped.saveWrapped);
 
   const fetchedForUser = fetched?.username === username ? fetched.data : null;
-  const data = (cachedData as unknown as WrappedData | null | undefined) ?? fetchedForUser;
+  const data =
+    (cachedData as unknown as WrappedData | null | undefined) ?? fetchedForUser;
   const error = fetchError?.username === username ? fetchError.message : "";
   const hasAttemptedFetch = fetchAttemptedFor === username;
   const isLoading =
@@ -55,8 +68,9 @@ export default function UserPage({ params }: { params: Promise<{ username: strin
       .catch((err: unknown) =>
         setFetchError({
           username,
-          message: err instanceof Error ? err.message : "Could not load profile.",
-        })
+          message:
+            err instanceof Error ? err.message : "Could not load profile.",
+        }),
       )
       .finally(() => {
         fetchInFlightFor.current.delete(username);
@@ -67,7 +81,7 @@ export default function UserPage({ params }: { params: Promise<{ username: strin
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-12 h-12 animate-spin text-neon-blue mb-4" />
+        <Loader className="w-12 h-12 animate-spin text-neon-blue mb-4" />
         <p className="text-gray-400">Loading {username}&apos;s Wrapped...</p>
       </div>
     );
@@ -77,8 +91,13 @@ export default function UserPage({ params }: { params: Promise<{ username: strin
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-white p-8">
         <h1 className="text-4xl font-bold mb-4">404: Developer Not Found</h1>
-        <p className="text-gray-400">Could not generate wrapped for <strong>{username}</strong>.</p>
-        <Link href="/" className="mt-8 px-6 py-3 bg-white text-black rounded-full font-bold">
+        <p className="text-gray-400">
+          Could not generate wrapped for <strong>{username}</strong>.
+        </p>
+        <Link
+          href="/"
+          className="mt-8 px-6 py-3 bg-white text-black rounded-full font-bold"
+        >
           Go Home
         </Link>
       </div>

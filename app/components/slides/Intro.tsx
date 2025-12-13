@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export function Intro({ data, onNext }: { data: WrappedData; onNext: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center space-y-8 max-w-2xl" onClick={onNext}>
+    <div className="flex flex-col items-center justify-center text-center space-y-8 w-full h-full cursor-pointer" onClick={onNext}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -26,16 +26,16 @@ export function Intro({ data, onNext }: { data: WrappedData; onNext: () => void 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="flex items-center gap-4 bg-glass-bg border border-glass-border px-6 py-3 rounded-full"
+        className="flex items-center gap-4"
       >
         <img
           src={data.user.avatarUrl}
           alt={data.user.login}
-          className="w-10 h-10 rounded-full border-2 border-neon-purple"
+          className="w-12 h-12 rounded-full border-2 border-neon-purple"
         />
         <div className="text-left">
           <p className="text-sm text-gray-400">Welcome,</p>
-          <p className="font-bold text-lg leading-none">@{data.user.login}</p>
+          <p className="font-bold text-xl leading-none">{data.user.name || data.user.login}</p>
         </div>
       </motion.div>
 

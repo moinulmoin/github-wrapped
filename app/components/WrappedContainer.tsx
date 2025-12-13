@@ -19,8 +19,7 @@ interface WrappedContainerProps {
   isSharedView?: boolean;
 }
 
-export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function WrappedContainer({ data, onReset, isSharedView }: WrappedContainerProps) {
   const slides = [
     Intro,
     Volume,
@@ -31,6 +30,9 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
     Evolution,  // Year-over-year comparison
     Persona,    // Final card
   ];
+  
+  // Start at last slide if shared view
+  const [currentIndex, setCurrentIndex] = useState(isSharedView ? slides.length - 1 : 0);
 
   const CurrentSlide = slides[currentIndex];
 
@@ -48,7 +50,8 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "Space") {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
         nextSlide();
       } else if (e.key === "ArrowLeft") {
         prevSlide();
@@ -60,17 +63,19 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background text-foreground flex items-center justify-center">
-      {/* Progress Bar */}
-      <div className="absolute top-6 left-0 right-0 flex justify-center gap-2 z-50 px-4">
-        {slides.map((_, idx) => (
-          <div
-            key={idx}
-            className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-              idx <= currentIndex ? "bg-neon-blue shadow-[0_0_10px_var(--neon-blue)]" : "bg-white/10"
-            }`}
-          />
-        ))}
-      </div>
+      {/* Progress Bar - hidden in shared view */}
+      {!isSharedView && (
+        <div className="absolute top-6 left-0 right-0 flex justify-center gap-2 z-50 px-4">
+          {slides.map((_, idx) => (
+            <div
+              key={idx}
+              className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                idx <= currentIndex ? "bg-neon-blue shadow-[0_0_10px_var(--neon-blue)]" : "bg-white/10"
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -81,30 +86,33 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
           transition={{ duration: 0.5, ease: "circOut" }}
           className="w-full h-full flex items-center justify-center p-4"
         >
-          <CurrentSlide data={data} onNext={nextSlide} />
+          <CurrentSlide data={data} onNext={nextSlide} isSharedView={isSharedView} />
         </motion.div>
       </AnimatePresence>
 
-      {/* Controls (visible on hover or touch) */}
-      <div className="absolute bottom-8 right-8 flex gap-4 z-50">
-        <button
-          onClick={prevSlide}
-          disabled={currentIndex === 0}
-          className="p-3 rounded-full bg-glass-bg border border-glass-border hover:bg-white/10 disabled:opacity-30 transition-all"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <button
-          onClick={nextSlide}
-          disabled={currentIndex === slides.length - 1}
-          className="p-3 rounded-full bg-glass-bg border border-glass-border hover:bg-white/10 disabled:opacity-30 transition-all"
-        >
-          <ArrowRight className="w-6 h-6" />
-        </button>
-      </div>
+      {/* Controls - hidden in shared view */}
+      {!isSharedView && (
+        <div className="absolute bottom-8 right-8 flex gap-4 z-50">
+          <button
+            onClick={prevSlide}
+            disabled={currentIndex === 0}
+            className="p-3 rounded-full bg-glass-bg border border-glass-border hover:bg-white/10 disabled:opacity-30 transition-all"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={nextSlide}
+            disabled={currentIndex === slides.length - 1}
+            className="p-3 rounded-full bg-glass-bg border border-glass-border hover:bg-white/10 disabled:opacity-30 transition-all"
+          >
+            <ArrowRight className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
-      {/* Restart Button (Top Right) */}
-       <button
+      {/* Restart Button (Top Right) - hidden in shared view */}
+      {!isSharedView && (
+        <button
           onClick={() => {
               if (onReset) onReset();
               else window.location.href = "/";
@@ -113,6 +121,7 @@ export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
         >
           {onReset ? "START OVER" : "CREATE YOUR OWN"}
         </button>
+      )}
     </div>
   );
 }

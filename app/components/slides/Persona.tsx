@@ -4,7 +4,7 @@ import { Share2, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas-pro";
 
-export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
+export function Persona({ data, isSharedView }: { data: WrappedData; onNext: () => void; isSharedView?: boolean }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -234,30 +234,32 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
-        className="flex gap-4"
-      >
-        <button className="flex items-center gap-2 px-6 py-3 bg-neon-blue text-black font-bold rounded-full hover:bg-white transition-colors"
-         onClick={() => {
-             const url = `${window.location.origin}/u/${data.user.login}`;
-             navigator.clipboard.writeText(url);
-             alert("Link copied to clipboard: " + url);
-         }}
+      {!isSharedView && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+          className="flex gap-4"
         >
-          <Share2 className="w-4 h-4" /> Share Link
-        </button>
+          <button className="flex items-center gap-2 px-6 py-3 bg-neon-blue text-black font-bold rounded-full hover:bg-white transition-colors"
+           onClick={() => {
+               const url = `${window.location.origin}/u/${data.user.login}`;
+               navigator.clipboard.writeText(url);
+               alert("Link copied to clipboard: " + url);
+           }}
+          >
+            <Share2 className="w-4 h-4" /> Share Link
+          </button>
 
-        <button
-          onClick={handleDownload}
-          disabled={downloading}
-          className="flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 text-white font-bold rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" /> {downloading ? "Saving..." : "Save Image"}
-        </button>
-      </motion.div>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 text-white font-bold rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" /> {downloading ? "Saving..." : "Save Image"}
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 }

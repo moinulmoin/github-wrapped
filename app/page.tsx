@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { fetchUserStats, WrappedData } from "./actions/github";
 import { WrappedContainer } from "./components/WrappedContainer";
-import { ArrowRight, Loader2, Github, LogOut } from "lucide-react";
+import { ArrowRight, Loader, Github, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { authClient } from "./lib/auth-client";
 
@@ -60,7 +60,9 @@ export default function Home() {
           const accessToken = extractAccessToken(tokenResult);
 
           if (!accessToken) {
-            throw new Error("GitHub access token is not available for this account.");
+            throw new Error(
+              "GitHub access token is not available for this account.",
+            );
           }
 
           // Let fetchUserStats derive the correct login using the token
@@ -75,7 +77,9 @@ export default function Home() {
           setData(stats);
         } catch (err: unknown) {
           console.error("Error fetching signed-in wrapped:", err);
-          setError(err instanceof Error ? err.message : "Something went wrong.");
+          setError(
+            err instanceof Error ? err.message : "Something went wrong.",
+          );
         } finally {
           setLoading(false);
         }
@@ -133,7 +137,9 @@ export default function Home() {
       {session?.user && (
         <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
           <span className="text-sm text-gray-400 hidden sm:inline">
-            <span className="text-neon-green font-medium">{session.user.name}</span>
+            <span className="text-neon-green font-medium">
+              {session.user.name}
+            </span>
           </span>
           <button
             onClick={handleSignOut}
@@ -151,14 +157,19 @@ export default function Home() {
         className="relative z-10 w-full max-w-md space-y-8 text-center"
       >
         <h1 className="text-4xl md:text-6xl font-bold font-display tracking-tight text-white">
-          GitHub Wrapped <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">2025</span>
+          GitHub Wrapped{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">
+            2025
+          </span>
         </h1>
 
         {sessionLoading || loading ? (
           <div className="flex flex-col items-center gap-4 py-8">
-            <Loader2 className="w-12 h-12 animate-spin text-neon-blue" />
+            <Loader className="w-12 h-12 animate-spin text-neon-blue" />
             <p className="text-gray-400">
-              {sessionLoading ? "Checking session..." : "Analyzing your profile..."}
+              {sessionLoading
+                ? "Checking session..."
+                : "Analyzing your profile..."}
             </p>
           </div>
         ) : session?.user ? (
@@ -173,7 +184,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 opacity-0 group-hover:opacity-100 transition-opacity" />
               <Github className="w-6 h-6 group-hover:scale-110 transition-transform text-white group-hover:text-neon-blue" />
               <span className="text-lg tracking-wide">Sign In with GitHub</span>
-              <span className="ml-2 text-xs font-mono bg-white/10 text-gray-300 px-2 py-1 rounded border border-white/5">+ Private Stats</span>
+              <span className="ml-2 text-xs font-mono bg-white/10 text-gray-300 px-2 py-1 rounded border border-white/5">
+                + Private Stats
+              </span>
             </button>
 
             <div className="flex items-center gap-4 text-gray-500 text-sm py-2">

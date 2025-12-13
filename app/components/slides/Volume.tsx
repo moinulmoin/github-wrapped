@@ -56,25 +56,24 @@ export function Volume({ data, onNext }: { data: WrappedData; onNext: () => void
       </div>
 
       <div className="grid grid-cols-2 gap-8 md:gap-16 mt-12 w-full max-w-2xl">
-        <StatBox label="Repositories" value={data.user.publicRepos} delay={2} icon={Book} />
-        <StatBox label="Total Stars" value={data.stats.totalStars} delay={2.2} icon={Star} />
+        <StatBox label="Repositories" value={data.user.publicRepos} delay={2} icon={Book} color="text-neon-blue" />
+        <StatBox label="Total Stars" value={data.stats.totalStars} delay={2.2} icon={Star} color="text-yellow-400" />
       </div>
     </div>
   );
 }
 
-function StatBox({ label, value, delay, icon: Icon }: { label: string; value: number; delay: number; icon: LucideIcon }) {
+function StatBox({ label, value, delay, icon: Icon, color }: { label: string; value: number; delay: number; icon: LucideIcon; color: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-glass-bg border border-glass-border p-6 rounded-2xl flex flex-col items-center relative group overflow-hidden"
+      className="flex flex-col items-center"
     >
-      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="bg-white/10 rounded-xl px-4 py-2 mb-3 border border-white/5 shadow-inner flex items-center gap-3">
-         <Icon className="w-6 h-6 md:w-8 md:h-8 text-white/70" />
-         <span className="text-4xl md:text-5xl font-bold text-white">{value}</span>
+      <div className="flex items-center gap-3 mb-3">
+         <Icon className={`w-8 h-8 md:w-10 md:h-10 ${color}`} />
+         <span className="text-5xl md:text-6xl font-bold text-white">{value.toLocaleString()}</span>
       </div>
       <span className="text-sm md:text-base text-gray-400 uppercase tracking-widest font-mono">{label}</span>
     </motion.div>
