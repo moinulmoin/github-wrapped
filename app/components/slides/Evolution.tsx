@@ -34,21 +34,30 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
     );
   }
 
-  type Metric =
-    | {
-        kind: "number";
-        label: string;
-        prev: number;
-        curr: number;
-        format: (v: number) => string;
-      }
-    | {
-        kind: "text";
-        label: string;
-        prev: string;
-        curr: string;
-        format: (v: string) => string;
-      };
+  type MetricNumber = {
+    kind: "number";
+    label: string;
+    prev: number;
+    curr: number;
+    format: (v: number) => string;
+  };
+
+  type MetricText = {
+    kind: "text";
+    label: string;
+    prev: string;
+    curr: string;
+    format: (v: string) => string;
+  };
+
+  type Metric = MetricNumber | MetricText;
+
+  const formatMetric = (metric: Metric, value: "prev" | "curr"): string => {
+    if (metric.kind === "number") {
+      return metric.format(metric[value]);
+    }
+    return metric.format(metric[value]);
+  };
 
   const metrics: Metric[] = [
     {
@@ -115,7 +124,7 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
                 <div className="text-left">
                   <span className="text-xs text-gray-600 block">2024</span>
                   <span className="text-xl md:text-2xl text-gray-500 font-bold">
-                    {metric.format(metric.prev)}
+                    {formatMetric(metric, "prev")}
                   </span>
                 </div>
 
@@ -126,7 +135,7 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
                 <div className="text-right">
                   <span className="text-xs text-gray-600 block">2025</span>
                   <span className={`text-xl md:text-2xl font-bold ${trend?.color || 'text-neon-blue'}`}>
-                    {metric.format(metric.curr)}
+                    {formatMetric(metric, "curr")}
                   </span>
                 </div>
               </div>

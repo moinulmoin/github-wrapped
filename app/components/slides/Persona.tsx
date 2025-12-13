@@ -1,8 +1,43 @@
 import { WrappedData } from "@/app/actions/github";
 import { motion } from "framer-motion";
-import { Share2 } from "lucide-react";
+import { Share2, Download } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import html2canvas from "html2canvas-pro";
 
 export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Pre-fetch avatar via our proxy to avoid CORS issues in html2canvas
+  useEffect(() => {
+    let active = true;
+    const fetchAvatar = async () => {
+      try {
+        // Use our proxy to bypass CORS restrictions from GitHub's avatar CDN
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.user.avatarUrl)}`;
+        const response = await fetch(proxyUrl);
+        const blob = await response.blob();
+        if (active) {
+          const url = URL.createObjectURL(blob);
+          setAvatarUrl(url);
+        }
+      } catch (err) {
+        console.warn("Failed to load avatar blob:", err);
+        // Fallback to original URL if proxy fails
+        if (active) setAvatarUrl(data.user.avatarUrl);
+      }
+    };
+
+    fetchAvatar();
+    return () => {
+      active = false;
+      if (avatarUrl && avatarUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.user.avatarUrl]); // Only re-fetch when the source URL changes.
 
   const getArchetype = () => {
     const { topLanguages, totalContributions, busyDay, specifics, longestStreak } = data.stats;
@@ -60,6 +95,29 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
     };
   };
 
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: "#0a0a0a", // Match webapp dark background
+        scale: 2, // High resolution
+        useCORS: true, // For external images (avatar)
+        allowTaint: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `github-wrapped-${data.user.login}-2025.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Download failed:", err);
+      alert("Failed to generate image. Please try screenshotting instead.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const archetype = getArchetype();
 
   return (
@@ -71,28 +129,40 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
         className="relative group perspective-1000"
       >
         {/* Card */}
-        <div className={`w-[300px] h-[450px] md:w-[380px] md:h-[550px] bg-gradient-to-br from-glass-bg to-black border-2 rounded-xl p-8 flex flex-col items-center justify-between shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden transition-colors duration-500`}
+        <div
+             ref={cardRef}
+             className={`w-[300px] h-[450px] md:w-[380px] md:h-[550px] bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border-2 rounded-xl p-8 flex flex-col items-center justify-between shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden transition-colors duration-500`}
              style={{ borderColor: getArchetypeColor(archetype.color), boxShadow: `0 0 30px ${getArchetypeColor(archetype.color)}30` }}
         >
 
           {/* Holographic Overlay Effect */}
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.05),transparent)] pointer-events-none" />
+          {/* Exclude from capture if it causes artifacts, but typically css gradient is fine.
+              Pointer events none means it won't interfere. */}
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.05),transparent)] pointer-events-none z-10" />
 
           {/* Header */}
-          <div className="w-full flex justify-between items-center text-xs text-gray-500 font-mono mb-2">
+          <div className="w-full flex justify-between items-center text-xs text-gray-500 font-mono mb-2 z-20">
              <span>#{data.user.login.toUpperCase()}</span>
              <span>2025 EDITION</span>
           </div>
 
           {/* Main Title - Reverted Priority */}
-          <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter text-white drop-shadow-lg mb-6">
+          <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter text-white drop-shadow-lg mb-6 z-20">
              GITHUB WRAPPED
           </h2>
 
           {/* Avatar & Badge */}
-          <div className="relative mb-4">
+          <div className="relative mb-4 z-20">
              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple blur-2xl opacity-50 rounded-full" />
-             <img src={data.user.avatarUrl} className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-white/20 relative z-10" alt="Avatar" />
+             {/* Use crossOrigin for html2canvas */}
+             {avatarUrl && (
+               <img
+                  src={avatarUrl}
+                  crossOrigin="anonymous"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-white/20 relative z-10"
+                  alt="Avatar"
+               />
+             )}
 
              {/* Rank Badge (Class Only) */}
              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-neon-green text-neon-green text-[10px] md:text-xs font-bold whitespace-nowrap z-20 shadow-neon-green/20 shadow-lg">
@@ -101,18 +171,18 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
           </div>
 
           {/* Subtitle / Desc */}
-          <div className="space-y-2 mb-4 relative group/tooltip cursor-help">
+          <div className="space-y-2 mb-4 relative group/tooltip cursor-help z-20">
              <p className={`text-base md:text-lg font-bold font-mono ${archetype.color}`}>
                 &quot;{archetype.desc}&quot;
              </p>
              {/* Tooltip */}
-             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-black/90 border border-white/10 rounded text-xs text-gray-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-30">
+             <div data-html2canvas-ignore className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-black/90 border border-white/10 rounded text-xs text-gray-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
                 {archetype.explanation}
              </div>
           </div>
 
           {/* Contribution Graph (Mini Heatmap) */}
-          <div className="w-full flex justify-center mb-4 px-2">
+          <div className="w-full flex justify-center mb-4 px-2 z-20">
              <div className="flex gap-[2px] flex-wrap justify-center opacity-80 max-w-[280px]">
                 {/* Render last ~100 days for visual flair without overwhelming DOM */}
                 {data.contributions.calendar.slice(-80).map((day, i) => (
@@ -130,7 +200,7 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
           </div>
 
           {/* Stats Summary Grid (Expanded) */}
-          <div className="w-full grid grid-cols-2 gap-y-3 gap-x-4 text-xs text-gray-400 border-t border-white/10 pt-4">
+          <div className="w-full grid grid-cols-2 gap-y-3 gap-x-2 md:gap-x-4 text-xs text-gray-400 border-t border-white/10 pt-4 z-20">
                <div className="flex justify-between">
                 <span>Commits</span>
                 <span className="text-white font-bold">{data.stats.specifics?.commits || 0}</span>
@@ -178,6 +248,14 @@ export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
          }}
         >
           <Share2 className="w-4 h-4" /> Share Link
+        </button>
+
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 text-white font-bold rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" /> {downloading ? "Saving..." : "Save Image"}
         </button>
       </motion.div>
     </div>

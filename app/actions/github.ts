@@ -403,7 +403,7 @@ export async function fetchUserStats(username: string, token?: string): Promise<
 }
 
 export async function fetchSignedInUserStats(): Promise<WrappedData> {
-  const hdrs = headers();
+  const hdrs = await headers();
 
   const session = await auth.api.getSession({
     headers: hdrs,
