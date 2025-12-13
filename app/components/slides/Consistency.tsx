@@ -46,10 +46,18 @@ export function Consistency({ data, onNext }: { data: WrappedData; onNext: () =>
         transition={{ delay: 1.5 }}
         className="text-xl md:text-2xl max-w-xl text-gray-300"
       >
-        {data.stats.longestStreak > 7
-          ? "Unstoppable momentum. you showed up when it mattered."
-          : "Consistency is loading... 2026 is your year."}
+        {getStreakQuote(data.stats.longestStreak)}
       </motion.p>
     </div>
   );
+}
+
+function getStreakQuote(days: number): string {
+    if (days > 100) return "You are a machine. Unstoppable force of nature.";
+    if (days > 50) return "Consistency isn't just a word for you, it's a lifestyle.";
+    if (days > 30) return "A month of non-stop code. Impressive discipline.";
+    if (days > 14) return "Two weeks straight. You're building a solid habit.";
+    if (days > 7) return "Unstoppable momentum. You showed up when it mattered.";
+    if (days > 3) return "Heating up! Keep that fire burning.";
+    return "Consistency is loading... 2026 is your year to shine.";
 }

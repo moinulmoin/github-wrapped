@@ -1,6 +1,7 @@
 import { WrappedData } from "@/app/actions/github";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { Book, Star, type LucideIcon } from "lucide-react";
 
 export function Volume({ data, onNext }: { data: WrappedData; onNext: () => void }) {
   const [count, setCount] = useState(0);
@@ -55,23 +56,27 @@ export function Volume({ data, onNext }: { data: WrappedData; onNext: () => void
       </div>
 
       <div className="grid grid-cols-2 gap-8 md:gap-16 mt-12 w-full max-w-2xl">
-        <StatBox label="Repositories" value={data.user.publicRepos} delay={2} />
-        <StatBox label="Total Stars" value={data.stats.totalStars} delay={2.2} />
+        <StatBox label="Repositories" value={data.user.publicRepos} delay={2} icon={Book} />
+        <StatBox label="Total Stars" value={data.stats.totalStars} delay={2.2} icon={Star} />
       </div>
     </div>
   );
 }
 
-function StatBox({ label, value, delay }: { label: string; value: number; delay: number }) {
+function StatBox({ label, value, delay, icon: Icon }: { label: string; value: number; delay: number; icon: LucideIcon }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-glass-bg border border-glass-border p-6 rounded-2xl flex flex-col items-center"
+      className="bg-glass-bg border border-glass-border p-6 rounded-2xl flex flex-col items-center relative group overflow-hidden"
     >
-      <span className="text-4xl md:text-5xl font-bold text-white mb-2">{value}</span>
-      <span className="text-sm md:text-base text-gray-400 uppercase tracking-widest">{label}</span>
+      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="bg-white/10 rounded-xl px-4 py-2 mb-3 border border-white/5 shadow-inner flex items-center gap-3">
+         <Icon className="w-6 h-6 md:w-8 md:h-8 text-white/70" />
+         <span className="text-4xl md:text-5xl font-bold text-white">{value}</span>
+      </div>
+      <span className="text-sm md:text-base text-gray-400 uppercase tracking-widest font-mono">{label}</span>
     </motion.div>
   );
 }

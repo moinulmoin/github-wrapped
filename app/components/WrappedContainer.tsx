@@ -19,7 +19,7 @@ interface WrappedContainerProps {
   isSharedView?: boolean;
 }
 
-export function WrappedContainer({ data, onReset, isSharedView }: WrappedContainerProps) {
+export function WrappedContainer({ data, onReset }: WrappedContainerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const slides = [
     Intro,

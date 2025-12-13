@@ -38,7 +38,7 @@ export function Collaboration({ data, onNext }: { data: WrappedData; onNext: () 
       </motion.h2>
 
       <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-        {stats.map((stat, i) => (
+        {stats.map((stat) => (
           <motion.div
             key={stat.label}
             initial={{ scale: 0, opacity: 0 }}
@@ -65,8 +65,16 @@ export function Collaboration({ data, onNext }: { data: WrappedData; onNext: () 
         transition={{ delay: 2.5 }}
         className="text-gray-500 italic max-w-md text-center"
       >
-        "Open source is not a spectator sport."
+        {getCollabQuote(data.stats)}
       </motion.p>
     </div>
   );
+}
+
+function getCollabQuote(stats: WrappedData["stats"]): string {
+  const { prs, issues } = stats.specifics || { prs: 0, issues: 0 };
+  if (prs > issues && prs > 20) return "\"You build bridges, not just code.\"";
+  if (issues > prs && issues > 20) return "\"You keep the ecosystem healthy. The guardian we need.\"";
+  if (stats.totalForks > 10) return "\"Your work inspires others. The highest form of flattery.\"";
+  return "\"Open source is not a spectator sport. And you're in the arena.\"";
 }

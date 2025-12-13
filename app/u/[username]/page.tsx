@@ -4,16 +4,17 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { fetchUserStats, WrappedData } from "../../actions/github";
 import { WrappedContainer } from "../../components/WrappedContainer";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const [username, setUsername] = useState<string>("");
-  const [data, setData] = useState<WrappedData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [fetched, setFetched] = useState<{ username: string; data: WrappedData } | null>(null);
+  const [fetchAttemptedFor, setFetchAttemptedFor] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<{ username: string; message: string } | null>(null);
+  const fetchInFlightFor = useRef<Set<string>>(new Set());
 
   // Unwrap params
   useEffect(() => {
@@ -27,28 +28,43 @@ export default function UserPage({ params }: { params: Promise<{ username: strin
   );
   const saveWrapped = useMutation(api.wrapped.saveWrapped);
 
+  const fetchedForUser = fetched?.username === username ? fetched.data : null;
+  const data = (cachedData as unknown as WrappedData | null | undefined) ?? fetchedForUser;
+  const error = fetchError?.username === username ? fetchError.message : "";
+  const hasAttemptedFetch = fetchAttemptedFor === username;
+  const isLoading =
+    !username ||
+    cachedData === undefined ||
+    (cachedData === null && !hasAttemptedFetch);
+
   useEffect(() => {
     if (!username) return;
 
-    // If we have cached data, use it
-    if (cachedData !== undefined) {
-      if (cachedData) {
-        setData(cachedData as WrappedData);
-        setLoading(false);
-      } else {
-        // No cache or expired - fetch fresh
-        fetchUserStats(username)
-          .then(async (stats) => {
-            await saveWrapped({ username, data: stats });
-            setData(stats);
-          })
-          .catch((err) => setError(err.message || "Could not load profile."))
-          .finally(() => setLoading(false));
-      }
-    }
-  }, [username, cachedData, saveWrapped]);
+    if (cachedData === undefined) return;
+    if (cachedData) return;
+    if (hasAttemptedFetch) return;
+    if (fetchInFlightFor.current.has(username)) return;
 
-  if (loading) {
+    fetchInFlightFor.current.add(username);
+
+    fetchUserStats(username)
+      .then(async (stats) => {
+        await saveWrapped({ username, data: stats });
+        setFetched({ username, data: stats });
+      })
+      .catch((err: unknown) =>
+        setFetchError({
+          username,
+          message: err instanceof Error ? err.message : "Could not load profile.",
+        })
+      )
+      .finally(() => {
+        fetchInFlightFor.current.delete(username);
+        setFetchAttemptedFor(username);
+      });
+  }, [username, cachedData, saveWrapped, hasAttemptedFetch]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-white">
         <Loader2 className="w-12 h-12 animate-spin text-neon-blue mb-4" />

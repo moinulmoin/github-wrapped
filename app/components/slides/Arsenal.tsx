@@ -58,7 +58,7 @@ export function Arsenal({ data, onNext }: { data: WrappedData; onNext: () => voi
         transition={{ delay: 2 }}
         className="mt-12 text-gray-500 italic text-center"
       >
-        "{data.stats.topLanguages[0]?.name || "Code"} is your native tongue."
+        &quot;{data.stats.topLanguages[0]?.name || "Code"} is your native tongue.&quot;
       </motion.p>
     </div>
   );

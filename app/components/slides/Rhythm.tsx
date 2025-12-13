@@ -1,6 +1,6 @@
 import { WrappedData } from "@/app/actions/github";
 import { motion } from "framer-motion";
-import { Activity, Moon, Sun } from "lucide-react";
+import { Activity } from "lucide-react";
 
 export function Rhythm({ data, onNext }: { data: WrappedData; onNext: () => void }) {
   return (
@@ -37,10 +37,23 @@ export function Rhythm({ data, onNext }: { data: WrappedData; onNext: () => void
         transition={{ delay: 1 }}
         className="bg-glass-bg border border-glass-border p-6 rounded-xl max-w-lg"
       >
-        <p className="text-lg text-gray-300">
-          That was your peak performance day. The code just flowed.
+        <p className="text-lg text-gray-300 italic">
+          &quot;{getQuote(data.stats.busyDay)}&quot;
         </p>
       </motion.div>
     </div>
   );
+}
+
+function getQuote(day: string): string {
+    const quotes: Record<string, string> = {
+        "Monday": "Starting the week with a bang. Pure momentum.",
+        "Tuesday": "Flow state unlocked. You were unstoppable.",
+        "Wednesday": "Hump day? More like pump day.",
+        "Thursday": "Consistency is key, and you turned the key.",
+        "Friday": "Deploying on Fridays? You like to live dangerously.",
+        "Saturday": "Weekend warrior. While others slept, you shipped.",
+        "Sunday": "The holy day of coding. Dedication level: Max."
+    };
+    return quotes[day] || "That was your peak performance day. The code just flowed.";
 }

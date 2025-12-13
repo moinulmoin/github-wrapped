@@ -1,6 +1,8 @@
 'use server'
 
 import { Octokit } from "octokit";
+import { auth } from "@/app/lib/auth";
+import { headers } from "next/headers";
 
 // Global octokit removed in favor of function-scoped instance to support dynamic tokens
 
@@ -40,6 +42,85 @@ export interface WrappedData {
   };
 }
 
+type Repo = {
+  stargazers_count: number | null;
+  forks_count: number | null;
+  language: string | null;
+};
+
+type ContributionDay = {
+  contributionCount: number;
+  date: string;
+  contributionLevel: string;
+};
+
+type ContributionWeek = {
+  contributionDays: ContributionDay[];
+};
+
+type ContributionCalendar = {
+  totalContributions: number;
+  weeks: ContributionWeek[];
+};
+
+type ContributionsCollection = {
+  totalCommitContributions: number;
+  totalPullRequestContributions: number;
+  totalIssueContributions: number;
+  contributionCalendar: ContributionCalendar;
+};
+
+type ContributionsQueryResponse = {
+  user: {
+    contributionsCollection: ContributionsCollection;
+  };
+};
+
+type PrevContributionDay = {
+  contributionCount: number;
+  date: string;
+};
+
+type PrevContributionWeek = {
+  contributionDays: PrevContributionDay[];
+};
+
+type PrevContributionCalendar = {
+  totalContributions: number;
+  weeks: PrevContributionWeek[];
+};
+
+type PrevYearQueryResponse = {
+  user: {
+    contributionsCollection: {
+      contributionCalendar: PrevContributionCalendar;
+    };
+  };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function extractAccessToken(tokenResult: unknown): string | undefined {
+  if (!isRecord(tokenResult)) return undefined;
+
+  const direct = tokenResult["accessToken"];
+  if (typeof direct === "string") return direct;
+
+  const data = tokenResult["data"];
+  if (!isRecord(data)) return undefined;
+
+  const dataAccessToken = data["accessToken"];
+  if (typeof dataAccessToken === "string") return dataAccessToken;
+
+  const token = data["token"];
+  if (!isRecord(token)) return undefined;
+
+  const nestedAccessToken = token["accessToken"];
+  return typeof nestedAccessToken === "string" ? nestedAccessToken : undefined;
+}
+
 export async function fetchUserStats(username: string, token?: string): Promise<WrappedData> {
   // Use provided token (user's PAT) or fall back to server environment token
   const authToken = token || process.env.GITHUB_TOKEN;
@@ -51,43 +132,59 @@ export async function fetchUserStats(username: string, token?: string): Promise<
   });
 
   console.log(`Starting fetch for ${username}`);
-  console.log(`Auth Strategy: ${token ? 'User PAT (Private Access)' : (process.env.GITHUB_TOKEN ? 'Server Token' : 'No Auth')}`);
-  if (token) console.log("✅ Using User's Personal Access Token (Private/Org Access Possible)");
+  console.log(
+    `Auth Strategy: ${token ? "User PAT (Private Access)" : process.env.GITHUB_TOKEN ? "Server Token" : "No Auth"}`
+  );
+  if (token)
+    console.log("✅ Using User's Personal Access Token (Private/Org Access Possible)");
+
   try {
-    // 1. Identify if we are the authenticated user
+    // 1. Identify if we are the authenticated user & derive effective username
     let isMe = false;
+    let effectiveUsername = username;
+
     try {
       const { data: currentUser } = await octokit.rest.users.getAuthenticated();
-      if (currentUser.login.toLowerCase() === username.toLowerCase()) {
+
+      if (token) {
+        // When a user is signed in and we have their token,
+        // always treat the token owner as the canonical username
+        effectiveUsername = currentUser.login;
+        isMe = true;
+      } else if (currentUser.login.toLowerCase() === username.toLowerCase()) {
+        // Server token belongs to the requested username
+        effectiveUsername = currentUser.login;
         isMe = true;
       }
-    } catch (e) {
+    } catch {
       // Token might be invalid or public-only without 'user' scope, ignore
     }
 
-    console.log(`Fetching data for ${username} (Is Authenticated User: ${isMe})`);
+    console.log(
+      `Fetching data for ${effectiveUsername} (Is Authenticated User: ${isMe})`
+    );
 
     // 2. Fetch User Data & Repos
     // If it's me, I can see my private repos. If not, only public.
-    const userRes = await octokit.rest.users.getByUsername({ username });
+    const userRes = await octokit.rest.users.getByUsername({ username: effectiveUsername });
 
-    let repos: any[] = [];
+    let repos: Repo[] = [];
     if (isMe) {
-       console.log("Fetching ALL repositories (Public + Private)...");
-       const res = await octokit.rest.repos.listForAuthenticatedUser({
-           sort: "updated",
-           per_page: 100,
-           visibility: "all"
-       });
-       repos = res.data;
+      console.log("Fetching ALL repositories (Public + Private)...");
+      const res = await octokit.rest.repos.listForAuthenticatedUser({
+        sort: "updated",
+        per_page: 100,
+        visibility: "all",
+      });
+      repos = res.data as unknown as Repo[];
     } else {
-       console.log("Fetching PUBLIC repositories...");
-       const res = await octokit.rest.repos.listForUser({
-           username,
-           per_page: 100,
-           sort: "updated"
-       });
-       repos = res.data;
+      console.log("Fetching PUBLIC repositories...");
+      const res = await octokit.rest.repos.listForUser({
+        username: effectiveUsername,
+        per_page: 100,
+        sort: "updated",
+      });
+      repos = res.data as unknown as Repo[];
     }
 
     const user = userRes.data;
@@ -111,18 +208,18 @@ export async function fetchUserStats(username: string, token?: string): Promise<
       .map(([name, count]) => ({
         name,
         count,
-        color: "#ffffff", // Placeholder, will map colors locally or fetch if needed
+        color: getLanguageColor(name),
       }));
 
     // 3. Fetch Contribution Data (GraphQL)
     // We try GraphQL for the heatmap, but fallback if it fails (often due to rate limits or auth)
     console.log('Fetching GraphQL data...');
-    let calendar = { totalContributions: 0, weeks: [] };
+    let calendar: ContributionCalendar = { totalContributions: 0, weeks: [] };
     let busyDay = "N/A";
     let maxStreak = 0;
-    var commits = 0;
-    var prs = 0;
-    var issues = 0;
+    let commits = 0;
+    let prs = 0;
+    let issues = 0;
 
     try {
       const contributionQuery = `
@@ -147,19 +244,19 @@ export async function fetchUserStats(username: string, token?: string): Promise<
         }
       `;
 
-      const graphqlRes: any = await octokit.graphql(contributionQuery, {
-        username,
+      const graphqlRes = await octokit.graphql<ContributionsQueryResponse>(contributionQuery, {
+        username: effectiveUsername,
       });
       console.log('GraphQL data fetched');
       const collection = graphqlRes.user.contributionsCollection;
       calendar = collection.contributionCalendar;
 
       // Process calendar for streaks and busy days
-      const days = calendar.weeks.flatMap((w: any) => w.contributionDays);
+      const days = calendar.weeks.flatMap((w) => w.contributionDays);
       const dayCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
 
       let currentStreak = 0;
-      days.forEach((day: any) => {
+      days.forEach((day) => {
         if (day.contributionCount > 0) {
           currentStreak++;
           maxStreak = Math.max(maxStreak, currentStreak);
@@ -210,16 +307,16 @@ export async function fetchUserStats(username: string, token?: string): Promise<
         }
       `;
 
-      const prev2024Res: any = await octokit.graphql(prev2024Query, { username });
+      const prev2024Res = await octokit.graphql<PrevYearQueryResponse>(prev2024Query, { username: effectiveUsername });
       const prevCalendar = prev2024Res.user.contributionsCollection.contributionCalendar;
-      const prevDays = prevCalendar.weeks.flatMap((w: any) => w.contributionDays);
+      const prevDays = prevCalendar.weeks.flatMap((w) => w.contributionDays);
 
       // Calculate prev year streak
       let prevStreak = 0;
       let prevMaxStreak = 0;
       const prevDayCounts = [0, 0, 0, 0, 0, 0, 0];
 
-      prevDays.forEach((day: any) => {
+      prevDays.forEach((day) => {
         if (day.contributionCount > 0) {
           prevStreak++;
           prevMaxStreak = Math.max(prevMaxStreak, prevStreak);
@@ -290,7 +387,7 @@ export async function fetchUserStats(username: string, token?: string): Promise<
       },
       contributions: {
         total: calendar.totalContributions,
-        calendar: calendar.weeks.flatMap((w: any) => w.contributionDays).map((d: any) => ({
+        calendar: calendar.weeks.flatMap((w) => w.contributionDays).map((d) => ({
             date: d.date,
             count: d.contributionCount,
             level: 0
@@ -303,4 +400,57 @@ export async function fetchUserStats(username: string, token?: string): Promise<
     console.error("Error fetching GitHub data:", error);
     throw new Error("Failed to fetch user data. Check the username or try again later.");
   }
+}
+
+export async function fetchSignedInUserStats(): Promise<WrappedData> {
+  const hdrs = headers();
+
+  const session = await auth.api.getSession({
+    headers: hdrs,
+  });
+
+  if (!session) {
+    throw new Error("Not authenticated");
+  }
+
+  const tokenResult = await auth.api.getAccessToken({
+    body: { providerId: "github" },
+    headers: hdrs,
+  });
+
+  // Better Auth may return the token directly or wrapped in a data object
+  const accessToken = extractAccessToken(tokenResult);
+
+  if (!accessToken) {
+    throw new Error("GitHub access token is not available for this account.");
+  }
+
+  // Username is derived from the token via getAuthenticated inside fetchUserStats
+  return fetchUserStats("", accessToken);
+}
+
+function getLanguageColor(language: string): string {
+  const colors: Record<string, string> = {
+    "TypeScript": "#3178c6",
+    "JavaScript": "#f1e05a",
+    "Python": "#3572A5",
+    "Java": "#b07219",
+    "Go": "#00ADD8",
+    "Rust": "#dea584",
+    "C++": "#f34b7d",
+    "C": "#555555",
+    "C#": "#178600",
+    "PHP": "#4F5D95",
+    "Ruby": "#701516",
+    "Shell": "#89e051",
+    "HTML": "#e34c26",
+    "CSS": "#563d7c",
+    "Vue": "#41b883",
+    "Svelte": "#ff3e00",
+    "Swift": "#F05138",
+    "Kotlin": "#A97BFF",
+    "Dart": "#00B4AB",
+    "Lua": "#000080"
+  };
+  return colors[language] || "#ffffff";
 }

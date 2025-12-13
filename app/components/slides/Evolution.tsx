@@ -28,37 +28,49 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
           transition={{ delay: 0.5 }}
           className="text-gray-400 text-lg"
         >
-          Come back next year to see how you've evolved.
+          Come back next year to see how you&apos;ve evolved.
         </motion.p>
       </div>
     );
   }
 
-  const metrics: Array<{
-    label: string;
-    prev: string | number;
-    curr: string | number;
-    format: (v: any) => string;
-    isText?: boolean;
-  }> = [
+  type Metric =
+    | {
+        kind: "number";
+        label: string;
+        prev: number;
+        curr: number;
+        format: (v: number) => string;
+      }
+    | {
+        kind: "text";
+        label: string;
+        prev: string;
+        curr: string;
+        format: (v: string) => string;
+      };
+
+  const metrics: Metric[] = [
     {
+      kind: "number",
       label: "CONTRIBUTIONS",
       prev: prev.totalContributions,
       curr: curr.totalContributions,
       format: (v: number) => v.toLocaleString(),
     },
     {
+      kind: "number",
       label: "LONGEST STREAK",
       prev: prev.longestStreak,
       curr: curr.longestStreak,
       format: (v: number) => `${v} days`,
     },
     {
+      kind: "text",
       label: "BUSIEST DAY",
       prev: prev.busyDay,
       curr: curr.busyDay,
       format: (v: string) => v,
-      isText: true,
     },
   ];
 
@@ -85,7 +97,7 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
         {metrics.map((metric, index) => {
-          const trend = !metric.isText ? getTrend(metric.prev as number, metric.curr as number) : null;
+          const trend = metric.kind === "number" ? getTrend(metric.prev, metric.curr) : null;
           const TrendIcon = trend?.icon;
 
           return (
@@ -124,11 +136,13 @@ export function Evolution({ data, onNext }: { data: WrappedData; onNext: () => v
                 <div className={`mt-3 flex items-center justify-center gap-1 text-xs ${trend?.color}`}>
                   <TrendIcon className="w-3 h-3" />
                   <span>
-                    {(metric.curr as number) > (metric.prev as number)
-                      ? `+${((metric.curr as number) - (metric.prev as number)).toLocaleString()}`
-                      : (metric.curr as number) < (metric.prev as number)
-                      ? `${((metric.curr as number) - (metric.prev as number)).toLocaleString()}`
-                      : "Same"}
+                    {metric.kind === "number"
+                      ? metric.curr > metric.prev
+                        ? `+${(metric.curr - metric.prev).toLocaleString()}`
+                        : metric.curr < metric.prev
+                          ? `${(metric.curr - metric.prev).toLocaleString()}`
+                          : "Same"
+                      : ""}
                   </span>
                 </div>
               )}

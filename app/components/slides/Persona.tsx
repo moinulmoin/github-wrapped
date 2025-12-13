@@ -1,8 +1,8 @@
 import { WrappedData } from "@/app/actions/github";
 import { motion } from "framer-motion";
-import { Share2, Download } from "lucide-react";
+import { Share2 } from "lucide-react";
 
-export function Persona({ data, onNext }: { data: WrappedData; onNext: () => void }) {
+export function Persona({ data }: { data: WrappedData; onNext: () => void }) {
 
   const getArchetype = () => {
     const { topLanguages, totalContributions, busyDay, specifics, longestStreak } = data.stats;
@@ -71,7 +71,9 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
         className="relative group perspective-1000"
       >
         {/* Card */}
-        <div className="w-[300px] h-[450px] md:w-[380px] md:h-[550px] bg-gradient-to-br from-glass-bg to-black border border-glass-border rounded-xl p-8 flex flex-col items-center justify-between shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
+        <div className={`w-[300px] h-[450px] md:w-[380px] md:h-[550px] bg-gradient-to-br from-glass-bg to-black border-2 rounded-xl p-8 flex flex-col items-center justify-between shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden transition-colors duration-500`}
+             style={{ borderColor: getArchetypeColor(archetype.color), boxShadow: `0 0 30px ${getArchetypeColor(archetype.color)}30` }}
+        >
 
           {/* Holographic Overlay Effect */}
           <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.05),transparent)] pointer-events-none" />
@@ -101,7 +103,7 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
           {/* Subtitle / Desc */}
           <div className="space-y-2 mb-4 relative group/tooltip cursor-help">
              <p className={`text-base md:text-lg font-bold font-mono ${archetype.color}`}>
-                "{archetype.desc}"
+                &quot;{archetype.desc}&quot;
              </p>
              {/* Tooltip */}
              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-black/90 border border-white/10 rounded text-xs text-gray-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-30">
@@ -180,4 +182,17 @@ export function Persona({ data, onNext }: { data: WrappedData; onNext: () => voi
       </motion.div>
     </div>
   );
+}
+
+function getArchetypeColor(twClass: string): string {
+    // Basic mapping from tailwind class to approx hex for shadow/glow
+    if (twClass.includes("neon-blue")) return "#00f3ff";
+    if (twClass.includes("neon-purple")) return "#bc13fe";
+    if (twClass.includes("neon-green")) return "#ccff00";
+    if (twClass.includes("green")) return "#4ade80";
+    if (twClass.includes("yellow")) return "#facc15";
+    if (twClass.includes("orange")) return "#fb923c";
+    if (twClass.includes("red")) return "#f87171";
+    if (twClass.includes("blue")) return "#3b82f6";
+    return "#ffffff";
 }
