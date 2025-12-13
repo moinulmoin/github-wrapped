@@ -173,7 +173,7 @@ export default function Home() {
             <Loader className="w-12 h-12 animate-spin text-neon-blue" />
             <p className="text-gray-400">Loading your wrapped...</p>
           </div>
-        ) : !session?.user || sessionLoading ? (
+        ) : (
           <>
             {/* Primary: Sign In */}
             <button
