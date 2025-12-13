@@ -163,18 +163,17 @@ export default function Home() {
           </span>
         </h1>
 
-        {sessionLoading || loading ? (
+        {loading ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <Loader className="w-12 h-12 animate-spin text-neon-blue" />
-            <p className="text-gray-400">
-              {sessionLoading
-                ? "Checking session..."
-                : "Analyzing your profile..."}
-            </p>
+            <p className="text-gray-400">Analyzing your profile...</p>
           </div>
-        ) : session?.user ? (
-          <div className="text-gray-400 py-8">Loading your wrapped...</div>
-        ) : (
+        ) : session?.user && !data ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Loader className="w-12 h-12 animate-spin text-neon-blue" />
+            <p className="text-gray-400">Loading your wrapped...</p>
+          </div>
+        ) : !session?.user || sessionLoading ? (
           <>
             {/* Primary: Sign In */}
             <button
