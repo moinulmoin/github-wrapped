@@ -33,7 +33,7 @@ export function Volume({ data, onNext }: { data: WrappedData; onNext: () => void
         animate={{ opacity: 1, y: 0 }}
         className="text-2xl md:text-4xl font-light text-gray-400 font-display"
       >
-        You made some noise this year.
+        {getVolumeHeadline(data.contributions.total)}
       </motion.h2>
 
       <div className="relative">
@@ -78,4 +78,14 @@ function StatBox({ label, value, delay, icon: Icon, color }: { label: string; va
       <span className="text-sm md:text-base text-gray-400 uppercase tracking-widest font-mono">{label}</span>
     </motion.div>
   );
+}
+
+function getVolumeHeadline(total: number): string {
+  if (total > 5000) return "You were absolutely unstoppable.";
+  if (total > 3000) return "You moved mountains this year.";
+  if (total > 2000) return "You made serious noise this year.";
+  if (total > 1000) return "You showed up and shipped.";
+  if (total > 500) return "You kept the momentum going.";
+  if (total > 100) return "You planted seeds this year.";
+  return "Every commit counts.";
 }

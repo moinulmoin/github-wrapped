@@ -58,8 +58,20 @@ export function Arsenal({ data, onNext }: { data: WrappedData; onNext: () => voi
         transition={{ delay: 2 }}
         className="mt-12 text-gray-500 italic text-center"
       >
-        &quot;{data.stats.topLanguages[0]?.name || "Code"} is your native tongue.&quot;
+        &quot;{getArsenalQuote(data.stats.topLanguages)}&quot;
       </motion.p>
     </div>
   );
+}
+
+function getArsenalQuote(languages: { name: string; count: number }[]): string {
+  const top = languages[0]?.name || "Code";
+  const count = languages.length;
+  
+  if (count >= 7) return `${top} leads your polyglot arsenal.`;
+  if (count >= 5) return `${top} and ${count - 1} other languages at your command.`;
+  if (count >= 3) return `${top} is your weapon of choice.`;
+  if (count === 2) return `${top} and ${languages[1]?.name} — a dynamic duo.`;
+  if (count === 1) return `${top} is your one true love.`;
+  return "The code speaks for itself.";
 }
