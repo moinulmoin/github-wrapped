@@ -1,9 +1,9 @@
 import { WrappedData } from "@/app/actions/github";
 import { motion } from "framer-motion";
 
-export function Intro({ data, onNext }: { data: WrappedData; onNext: () => void }) {
+export function Intro({ data }: { data: WrappedData; onNext?: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center space-y-8 w-full h-full cursor-pointer" onClick={onNext}>
+    <div className="flex flex-col items-center justify-center text-center space-y-8 w-full h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

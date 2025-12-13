@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { fetchUserStats, WrappedData } from "./actions/github";
@@ -37,57 +37,54 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<WrappedData | null>(null);
   const [error, setError] = useState("");
+  const hasHandledCallback = useRef(false);
 
-  // Better Auth session (reactive on client)
   const { data: session, isPending: sessionLoading } = authClient.useSession();
-
-  // Convex mutation for caching wrapped data
   const saveWrapped = useMutation(api.wrapped.saveWrapped);
 
-  // When user signs in, immediately fetch their wrapped using their GitHub token
-  useEffect(() => {
-    const fetchWithToken = async () => {
-      if (session?.user && !data && !loading && !error && !sessionLoading) {
-        setLoading(true);
-        setError("");
+  // Fetch authenticated user's wrapped data
+  const fetchAuthenticatedWrapped = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-        try {
-          // Get access token ON-THE-FLY (not stored anywhere long-term)
-          const tokenResult = await authClient.getAccessToken({
-            providerId: "github",
-          });
+    try {
+      const tokenResult = await authClient.getAccessToken({
+        providerId: "github",
+      });
 
-          const accessToken = extractAccessToken(tokenResult);
-
-          if (!accessToken) {
-            throw new Error(
-              "GitHub access token is not available for this account.",
-            );
-          }
-
-          // Let fetchUserStats derive the correct login using the token
-          const stats = await fetchUserStats("", accessToken);
-          const githubLogin = stats.user.login;
-
-          setUsername(githubLogin);
-
-          // Cache ONLY the wrapped data (not the token)
-          await saveWrapped({ username: githubLogin, data: stats });
-
-          setData(stats);
-        } catch (err: unknown) {
-          console.error("Error fetching signed-in wrapped:", err);
-          setError(
-            err instanceof Error ? err.message : "Something went wrong.",
-          );
-        } finally {
-          setLoading(false);
-        }
+      const accessToken = extractAccessToken(tokenResult);
+      if (!accessToken) {
+        throw new Error("GitHub access token is not available.");
       }
-    };
 
-    fetchWithToken();
-  }, [session, sessionLoading, data, loading, saveWrapped, error]);
+      const stats = await fetchUserStats("", accessToken);
+      const githubLogin = stats.user.login;
+
+      setUsername(githubLogin);
+      await saveWrapped({ username: githubLogin, data: stats });
+      setData(stats);
+    } catch (err: unknown) {
+      console.error("Error fetching wrapped:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }, [saveWrapped]);
+
+  // Handle OAuth callback - runs once when redirected back with ?callback=1
+  useEffect(() => {
+    if (hasHandledCallback.current || sessionLoading) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const isCallback = params.get("callback") === "1";
+
+    if (isCallback && session?.user) {
+      hasHandledCallback.current = true;
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      fetchAuthenticatedWrapped();
+    }
+  }, [session, sessionLoading, fetchAuthenticatedWrapped]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +108,7 @@ export default function Home() {
   const handleSignIn = async () => {
     await authClient.signIn.social({
       provider: "github",
-      callbackURL: window.location.origin,
+      callbackURL: `${window.location.origin}?callback=1`,
     });
   };
 
@@ -168,55 +165,72 @@ export default function Home() {
             <Loader className="w-12 h-12 animate-spin text-neon-blue" />
             <p className="text-gray-400">Analyzing your profile...</p>
           </div>
-        ) : session?.user && !data ? (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <Loader className="w-12 h-12 animate-spin text-neon-blue" />
-            <p className="text-gray-400">Loading your wrapped...</p>
-          </div>
         ) : (
           <>
-            {/* Primary: Sign In */}
-            <button
-              onClick={handleSignIn}
-              className="group relative w-full bg-black/50 hover:bg-black/70 border border-white/10 hover:border-white/30 text-white font-bold rounded-xl py-6 flex items-center justify-center gap-3 transition-all duration-300 overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Github className="w-6 h-6 group-hover:scale-110 transition-transform text-white group-hover:text-neon-blue" />
-              <span className="text-lg tracking-wide">Sign In with GitHub</span>
-              <span className="ml-2 text-xs font-mono bg-white/10 text-gray-300 px-2 py-1 rounded border border-white/5">
-                + Private Stats
-              </span>
-            </button>
-
-            <div className="flex items-center gap-4 text-gray-500 text-sm py-2">
-              <div className="flex-1 h-px bg-white/10" />
-              or
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Secondary: Manual Input */}
-            <form onSubmit={handleSubmit} className="w-full space-y-4">
-              <div className="relative group">
-                <Github className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 group-focus-within:text-neon-purple transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Enter any GitHub username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-glass-bg border border-glass-border/50 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-all"
-                />
-              </div>
-
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-
+            {/* Primary: Sign In or Generate (if already signed in) */}
+            {session?.user ? (
               <button
-                type="submit"
-                disabled={!username.trim()}
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl py-4 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={fetchAuthenticatedWrapped}
+                className="group relative w-full bg-black/50 hover:bg-black/70 border border-white/10 hover:border-white/30 text-white font-bold rounded-xl py-6 flex items-center justify-center gap-3 transition-all duration-300 overflow-hidden"
               >
-                Generate Wrapped <ArrowRight className="w-4 h-4" />
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Github className="w-6 h-6 group-hover:scale-110 transition-transform text-white group-hover:text-neon-blue" />
+                <span className="text-lg tracking-wide">Generate My Wrapped</span>
+                <span className="ml-2 text-xs font-mono bg-white/10 text-gray-300 px-2 py-1 rounded border border-white/5">
+                  + Private Stats
+                </span>
               </button>
-            </form>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="group relative w-full bg-black/50 hover:bg-black/70 border border-white/10 hover:border-white/30 text-white font-bold rounded-xl py-6 flex items-center justify-center gap-3 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-neon-purple/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Github className="w-6 h-6 group-hover:scale-110 transition-transform text-white group-hover:text-neon-blue" />
+                <span className="text-lg tracking-wide">Sign In with GitHub</span>
+                <span className="ml-2 text-xs font-mono bg-white/10 text-gray-300 px-2 py-1 rounded border border-white/5">
+                  + Private Stats
+                </span>
+              </button>
+            )}
+
+            {/* Manual input only for non-logged-in users */}
+            {!session?.user && (
+              <>
+                <div className="flex items-center gap-4 text-gray-500 text-sm py-2">
+                  <div className="flex-1 h-px bg-white/10" />
+                  or
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                <form onSubmit={handleSubmit} className="w-full space-y-4">
+                  <div className="relative group">
+                    <Github className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 group-focus-within:text-neon-purple transition-colors" />
+                    <input
+                      type="text"
+                      placeholder="Enter any GitHub username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full bg-glass-bg border border-glass-border/50 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-all"
+                    />
+                  </div>
+
+                  {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={!username.trim()}
+                    className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl py-4 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Generate Wrapped <ArrowRight className="w-4 h-4" />
+                  </button>
+                </form>
+              </>
+            )}
+
+            {error && session?.user && (
+              <p className="text-red-500 text-sm">{error}</p>
+            )}
           </>
         )}
       </motion.div>

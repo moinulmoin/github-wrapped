@@ -84,7 +84,14 @@ export function WrappedContainer({ data, onReset, isSharedView }: WrappedContain
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: "circOut" }}
-          className="w-full h-full flex items-center justify-center p-4"
+          className="w-full h-full flex items-center justify-center p-4 cursor-pointer"
+          onClick={(e) => {
+            // Only advance if not clicking on a button or interactive element
+            const target = e.target as HTMLElement;
+            if (!target.closest("button") && !target.closest("a") && !target.closest("input")) {
+              nextSlide();
+            }
+          }}
         >
           <CurrentSlide data={data} onNext={nextSlide} isSharedView={isSharedView} />
         </motion.div>
