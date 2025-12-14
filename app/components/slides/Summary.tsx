@@ -1,53 +1,71 @@
 import { WrappedData } from "@/app/actions/github";
-import { Persona } from "./Persona";
 import { motion } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
-import { Share2, Download, Trophy, Flame, GitCommit, Calendar, Code, Star, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Share2, Download, Trophy, Flame, GitCommit, Calendar, Code, Star, Zap, Layers, Users } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 
 export function Summary({ data, isSharedView }: { data: WrappedData; onNext?: () => void; isSharedView?: boolean }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Logic duplicated from Persona to display consistent Rank/Archetype
+  // Pre-fetch avatar via proxy for CORS support in html2canvas
+  useEffect(() => {
+    let active = true;
+    const fetchAvatar = async () => {
+      try {
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.user.avatarUrl)}`;
+        const response = await fetch(proxyUrl);
+        const blob = await response.blob();
+        if (active) {
+          const url = URL.createObjectURL(blob);
+          setAvatarUrl(url);
+        }
+      } catch (err) {
+        console.warn("Failed to load avatar blob:", err);
+        if (active) setAvatarUrl(data.user.avatarUrl);
+      }
+    };
+    fetchAvatar();
+    return () => {
+      active = false;
+      if (avatarUrl && avatarUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [data.user.avatarUrl]);
+
   const getArchetype = () => {
     const { topLanguages, totalContributions, busyDay, specifics, longestStreak } = data.stats;
     const prs = specifics?.prs || 0;
     const issues = specifics?.issues || 0;
 
-    if (totalContributions > 3000) return { title: "THE TITAN", color: "text-neon-blue" };
-    if (prs > 100) return { title: "THE SHIPPER", color: "text-green-400" };
-    if (issues > 50) return { title: "THE GUARDIAN", color: "text-yellow-400" };
-    if (topLanguages.length > 6) return { title: "THE POLYGLOT", color: "text-neon-purple" };
-    if (topLanguages.length < 3 && totalContributions > 500) return { title: "THE SPECIALIST", color: "text-blue-500" };
-    if (longestStreak > 30) return { title: "THE SURVIVOR", color: "text-orange-500" };
-    if (["Saturday", "Sunday"].includes(busyDay)) return { title: "THE WARRIOR", color: "text-red-500" };
-    return { title: "THE ARCHITECT", color: "text-white" };
+    if (totalContributions > 3000) return { title: "THE TITAN", color: "text-neon-blue", border: "border-neon-blue", shadow: "shadow-neon-blue/30" };
+    if (prs > 100) return { title: "THE SHIPPER", color: "text-green-400", border: "border-green-400", shadow: "shadow-green-400/30" };
+    if (issues > 50) return { title: "THE GUARDIAN", color: "text-yellow-400", border: "border-yellow-400", shadow: "shadow-yellow-400/30" };
+    if (topLanguages.length > 6) return { title: "THE POLYGLOT", color: "text-neon-purple", border: "border-neon-purple", shadow: "shadow-neon-purple/30" };
+    if (topLanguages.length < 3 && totalContributions > 500) return { title: "THE SPECIALIST", color: "text-blue-500", border: "border-blue-500", shadow: "shadow-blue-500/30" };
+    if (longestStreak > 30) return { title: "THE SURVIVOR", color: "text-orange-500", border: "border-orange-500", shadow: "shadow-orange-500/30" };
+    if (["Saturday", "Sunday"].includes(busyDay)) return { title: "THE WARRIOR", color: "text-red-500", border: "border-red-500", shadow: "shadow-red-500/30" };
+    return { title: "THE ARCHITECT", color: "text-white", border: "border-white", shadow: "shadow-white/30" };
   };
 
   const archetype = getArchetype();
 
   const handleDownload = async () => {
-    // We capture the "Persona" card which is rendered inside this component
-    // effectively saving just the card visualization as before.
-    // However, if the user wants to save the ENTIRE dashboard, we target a wrapper.
-    // For now, let's target the wrapper of the Persona card to keep the "Card" artifact.
-    // OR we can make a new "Dashboard" capture.
-    // Let's stick to capturing the Persona Card for now as it's the "collectible".
-    const elementToCapture = document.querySelector("#persona-card-container") as HTMLElement;
+    const elementToCapture = document.querySelector("#unified-dashboard") as HTMLElement;
     if (!elementToCapture) return;
 
     setDownloading(true);
     try {
       const canvas = await html2canvas(elementToCapture, {
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#000000", // Ensure dark background
         scale: 2,
         useCORS: true,
         allowTaint: true,
       });
 
       const link = document.createElement("a");
-      link.download = `github-wrapped-${data.user.login}-2025-card.png`;
+      link.download = `github-wrapped-${data.user.login}-2025.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -57,146 +75,174 @@ export function Summary({ data, isSharedView }: { data: WrappedData; onNext?: ()
     }
   };
 
-  const BentoItem = ({ title, value, sub, icon: Icon, delay, className = "" }: any) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: "spring" }}
-      className={`bg-glass-bg border border-glass-border/50 rounded-xl p-4 flex flex-col justify-between hover:bg-white/5 transition-colors ${className}`}
-    >
-      <div className="flex items-center gap-2 text-white/50 text-xs font-mono uppercase">
+  const BentoItem = ({ title, value, sub, icon: Icon, className = "", colSpan = "col-span-1" }: any) => (
+    <div className={`bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between ${className} ${colSpan}`}>
+      <div className="flex items-center gap-2 text-white/50 text-xs font-mono uppercase mb-2">
         {Icon && <Icon className="w-3 h-3" />}
         {title}
       </div>
-      <div className="mt-2">
-        <div className={`text-xl md:text-2xl font-bold font-display ${className.includes("text-") ? "" : "text-white"}`}>
+      <div>
+        <div className={`text-2xl md:text-3xl font-bold font-display ${className.includes("text-") ? "" : "text-white"}`}>
           {value}
         </div>
         {sub && <div className="text-[10px] text-white/40 font-mono mt-1">{sub}</div>}
       </div>
-    </motion.div>
+    </div>
   );
 
   return (
-    <div className="w-full h-full p-4 md:p-8 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 max-w-7xl mx-auto">
-
-      {/* Left Column: The Card */}
-      <div className="flex-shrink-0 flex flex-col items-center gap-6">
-        <div id="persona-card-container" className="transform scale-90 md:scale-100 transition-transform">
-          <Persona data={data} isSharedView={true} onNext={() => { }} />
-        </div>
-
-        {/* Actions for Mobile (below card) / Desktop (below card) */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="flex gap-4 w-full justify-center"
+    <div className="w-full h-full flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-4xl"
+      >
+        {/* The Capture Container */}
+        <div
+          id="unified-dashboard"
+          className="bg-[#050505] p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden"
         >
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/u/${data.user.login}`;
-              navigator.clipboard.writeText(url);
-              alert("Link copied to clipboard!");
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-neon-blue text-black font-bold rounded-full hover:bg-white transition-colors shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:shadow-[0_0_30px_rgba(0,243,255,0.5)]"
-          >
-            <Share2 className="w-4 h-4" /> Share
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/20 text-white font-bold rounded-full hover:bg-white/10 transition-colors"
-          >
-            <Download className="w-4 h-4" /> {downloading ? "..." : "Save Card"}
-          </button>
-        </motion.div>
-      </div>
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-neon-blue/5 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-neon-purple/5 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Right Column: Bento Grid Stats */}
-      <div className="flex-1 w-full max-w-xl h-full flex flex-col justify-center">
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 w-full">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6 mb-8 relative z-10">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue to-neon-purple blur rounded-full opacity-50" />
+                {avatarUrl && (
+                  <img
+                    src={avatarUrl}
+                    crossOrigin="anonymous"
+                    className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-white/20 relative z-10"
+                    alt="Avatar"
+                  />
+                )}
+              </div>
+              <div className="text-center md:text-left">
+                <div className="text-neon-blue text-xs font-mono tracking-widest mb-1">GITHUB WRAPPED 2025</div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white leading-none mb-1">{data.user.name || data.user.login}</h1>
+                <div className="text-white/40 font-mono text-sm">@{data.user.login}</div>
+              </div>
+            </div>
 
-          {/* 1. Rank */}
-          <BentoItem
-            title="Universal Rank"
-            value={archetype.title}
-            sub="Based on overall activity"
-            icon={Trophy}
-            delay={0.1}
-            className={archetype.color} // Use the rank color text
-          />
+            <div className={`px-6 py-2 rounded-full border ${archetype.border} bg-white/5 backdrop-blur-md ${archetype.shadow} shadow-lg`}>
+              <div className={`text-sm md:text-base font-bold tracking-wider ${archetype.color}`}>
+                {archetype.title}
+              </div>
+            </div>
+          </div>
 
-          {/* 2. Streak */}
-          <BentoItem
-            title="Longest Streak"
-            value={`${data.stats.longestStreak} Days`}
-            sub="Consistency is key"
-            icon={Flame}
-            delay={0.2}
-            className="text-orange-400"
-          />
+          {/* Grid Layout */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
 
-          {/* 3. Total Contributions (Big) */}
-          <BentoItem
-            title="2025 Contributions"
-            value={data.stats.totalContributions.toLocaleString()}
-            sub="Total impact this year"
-            icon={GitCommit}
-            delay={0.3}
-            className="col-span-2 bg-gradient-to-r from-white/5 to-transparent text-white"
-          />
+            {/* Hero Stat: Total Contributions */}
+            <div className="col-span-2 md:col-span-2 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-2 text-neon-green text-sm font-mono uppercase mb-1">
+                <GitCommit className="w-4 h-4" /> Total Contributions
+              </div>
+              <div className="text-5xl md:text-6xl font-black text-white tracking-tight">
+                {data.stats.totalContributions.toLocaleString()}
+              </div>
+              {/* Mini visual representation of contribution graph */}
+              <div className="flex gap-[2px] mt-4 opacity-30 h-8 items-end">
+                {data.contributions.calendar.slice(-40).map((d, i) => (
+                  <div key={i} className="w-1.5 bg-white rounded-sm" style={{ height: `${Math.max(10, Math.min(100, d.count * 10))}%` }} />
+                ))}
+              </div>
+            </div>
 
-          {/* 4. Top Language */}
-          <BentoItem
-            title="Top Language"
-            value={data.stats.topLanguages[0]?.name || "N/A"}
-            sub={`${data.stats.topLanguages[0]?.count || 0} Repos`}
-            icon={Code}
-            delay={0.4}
-            className="text-neon-purple"
-          />
+            {/* Streak */}
+            <BentoItem
+              title="Longest Streak"
+              value={`${data.stats.longestStreak} Days`}
+              icon={Flame}
+              className="text-orange-400 bg-orange-500/5 border-orange-500/20"
+            />
 
-          {/* 5. Most Active Day */}
-          <BentoItem
-            title="Power Day"
-            value={data.stats.busyDay}
-            sub="When you're most productive"
-            icon={Calendar}
-            delay={0.5}
-            className="text-yellow-400"
-          />
+            {/* Top Language */}
+            <BentoItem
+              title="Top Language"
+              value={data.stats.topLanguages[0]?.name || "N/A"}
+              icon={Code}
+              className="text-neon-purple bg-neon-purple/5 border-neon-purple/20"
+            />
 
-          {/* 6. Stars & Forks */}
-          <div className="grid grid-cols-2 gap-3 col-span-2">
+            {/* Most Active Day */}
+            <BentoItem
+              title="Power Day"
+              value={data.stats.busyDay}
+              icon={Zap}
+              className="text-yellow-400 bg-yellow-500/5 border-yellow-500/20"
+            />
+
+            {/* Repositories */}
+            <BentoItem
+              title="Repositories"
+              value={data.user.publicRepos}
+              icon={Layers}
+              className="text-pink-400 bg-pink-500/5 border-pink-500/20"
+            />
+
+            {/* Stars */}
             <BentoItem
               title="Stars Earned"
               value={data.stats.totalStars}
               icon={Star}
-              delay={0.6}
-              className="text-neon-blue"
+              className="text-neon-blue bg-neon-blue/5 border-neon-blue/20"
             />
+
+            {/* Followers */}
             <BentoItem
-              title="Repositories"
-              value={data.user.publicRepos}
-              icon={Code}
-              delay={0.7}
-              className="text-pink-400"
+              title="Followers"
+              value={data.user.followers}
+              icon={Users}
+              className="text-white bg-white/5 border-white/20"
             />
+          </div>
+
+          {/* Footer Brand */}
+          <div className="mt-8 flex justify-between items-end border-t border-white/5 pt-4 opacity-50 relative z-10">
+            <div className="text-xs text-white/40 font-mono">
+              Generated on {new Date().toLocaleDateString()}
+            </div>
+            <div className="text-sm font-display font-bold text-white tracking-widest">
+              GIT-WRAPPED.COM
+            </div>
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="mt-8 text-center md:text-left"
-        >
-          <div className="text-sm text-gray-500 font-mono">
-            Generated by <span className="text-white">git-wrapped.com</span>
-          </div>
-        </motion.div>
-      </div>
+        {/* Actions */}
+        {!isSharedView && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            className="flex gap-4 w-full justify-center mt-8"
+          >
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/u/${data.user.login}`;
+                navigator.clipboard.writeText(url);
+                alert("Link copied to clipboard!");
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-neon-blue text-black font-bold rounded-full hover:bg-white transition-colors shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:shadow-[0_0_30px_rgba(0,243,255,0.5)]"
+            >
+              <Share2 className="w-4 h-4" /> Share Link
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/20 text-white font-bold rounded-full hover:bg-white/10 transition-colors"
+            >
+              <Download className="w-4 h-4" /> {downloading ? "Saving..." : "Save Image"}
+            </button>
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   );
 }
