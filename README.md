@@ -1,41 +1,82 @@
-# Git Wrapped 2025 🎁
+# GitHub Wrapped 2025
 
-A "Spotify Wrapped" style experience for developers. Visualize your 2025 GitHub contributions with a cyberpunk/bioluminescence aesthetic.
+A "Spotify Wrapped" style experience for developers. Visualize your 2025 GitHub contributions with beautiful animated slides.
 
 ## Features
-- **The Volume:** Total contributions counter.
-- **The Rhythm:** Peak productivity time analysis.
-- **The Arsenal:** Top languages visualization.
-- **The Consistency:** Longest streak calculation.
-- **The Persona:** Auto-generated developer archetype.
 
-## Setup & Running
+- **GitHub OAuth Sign-in** - Get private contribution stats with authenticated access
+- **Public Mode** - Enter any GitHub username to view their public stats
+- **Shareable Links** - Share your wrapped via `/u/[username]`
+- **Download as Image** - Save your final persona card as PNG
 
-1.  **Clone & Install**
-    ```bash
-    git clone <your-repo>
-    cd git-wrapped
-    pnpm install
-    ```
+### Slides
 
-2.  **API Token (Crucial for Rate Limits)**
-    The app uses the GitHub API. Unauthenticated requests are limited to 60/hr. To avoid "Request quota exhausted" errors:
+- **The Volume** - Total contributions with dynamic commentary
+- **The Rhythm** - Peak productivity time analysis
+- **The Arsenal** - Top languages visualization
+- **The Collaboration** - PR and issue stats
+- **The Consistency** - Longest streak calculation
+- **The Evolution** - Year-over-year comparison
+- **The Persona** - Auto-generated developer archetype
 
-    *   Create a `.env.local` file in the root directory.
-    *   Add your GitHub Token (Classic or Fine-grained):
-        ```bash
-        GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxx
-        ```
-    *   [Generate a token here](https://github.com/settings/tokens) (No special scopes needed for public data).
+## Setup
 
-3.  **Run Development Server**
-    ```bash
-    pnpm dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000).
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/moinulmoin/github-wrapped.git
+cd github-wrapped
+pnpm install
+```
+
+### 2. Environment Variables
+
+Create a `.env.local` file:
+
+```bash
+# GitHub OAuth (Better Auth)
+GITHUB_CLIENT_ID=your_github_oauth_client_id
+GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
+
+# Better Auth
+BETTER_AUTH_SECRET=your_random_secret_key
+BETTER_AUTH_URL=http://localhost:3000
+
+# Convex
+CONVEX_DEPLOYMENT=your_convex_deployment
+NEXT_PUBLIC_CONVEX_URL=your_convex_url
+
+# Optional: Server-side GitHub token for public data (higher rate limits)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxx
+```
+
+### 3. GitHub OAuth App Setup
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Create a new OAuth App
+3. Set callback URL to `http://localhost:3000/api/auth/callback/github`
+4. Copy Client ID and Client Secret to `.env.local`
+
+### 4. Convex Setup
+
+```bash
+pnpm convex dev
+```
+
+### 5. Run Development Server
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Tech Stack
-- Next.js 16 (App Router)
+
+- Next.js 15 (App Router)
 - Tailwind CSS 4
 - Framer Motion
-- Octokit
+- Better Auth (GitHub OAuth)
+- Convex (Data caching)
+- Octokit (GitHub API)
+- html2canvas-pro (Image download)
