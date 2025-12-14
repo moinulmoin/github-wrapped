@@ -10,7 +10,7 @@ import { Arsenal } from "./slides/Arsenal";
 import { Collaboration } from "./slides/Collaboration";
 import { Consistency } from "./slides/Consistency";
 import { Evolution } from "./slides/Evolution";
-import { Persona } from "./slides/Persona";
+import { Summary } from "./slides/Summary";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
 interface WrappedContainerProps {
@@ -28,9 +28,10 @@ export function WrappedContainer({ data, onReset, isSharedView }: WrappedContain
     Collaboration,
     Consistency,
     Evolution,  // Year-over-year comparison
-    Persona,    // Final card
+
+    Summary,    // Final Dashboard (includes Persona card)
   ];
-  
+
   // Start at last slide if shared view
   const [currentIndex, setCurrentIndex] = useState(isSharedView ? slides.length - 1 : 0);
 
@@ -69,9 +70,8 @@ export function WrappedContainer({ data, onReset, isSharedView }: WrappedContain
           {slides.map((_, idx) => (
             <div
               key={idx}
-              className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-                idx <= currentIndex ? "bg-neon-blue shadow-[0_0_10px_var(--neon-blue)]" : "bg-white/10"
-              }`}
+              className={`h-1 flex-1 rounded-full transition-all duration-500 ${idx <= currentIndex ? "bg-neon-blue shadow-[0_0_10px_var(--neon-blue)]" : "bg-white/10"
+                }`}
             />
           ))}
         </div>
@@ -121,8 +121,8 @@ export function WrappedContainer({ data, onReset, isSharedView }: WrappedContain
       {!isSharedView && (
         <button
           onClick={() => {
-              if (onReset) onReset();
-              else window.location.href = "/";
+            if (onReset) onReset();
+            else window.location.href = "/";
           }}
           className="absolute top-8 right-8 z-50 text-xs text-white/40 hover:text-white transition-colors"
         >
