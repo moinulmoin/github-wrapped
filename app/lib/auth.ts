@@ -6,8 +6,8 @@ export const auth = betterAuth({
         github: {
             clientId: process.env.GITHUB_CLIENT_ID || "",
             clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-            // Request repo scope for private repo access
-            scope: ["repo", "read:user", "read:org"],
+            // GitHub App uses fine-grained permissions set at app level
+            // Only request email scope for user identification
         },
     },
     session: {

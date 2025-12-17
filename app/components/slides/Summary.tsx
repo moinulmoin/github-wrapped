@@ -210,7 +210,7 @@ export function Summary({ data, isSharedView }: { data: WrappedData; onNext?: ()
               Generated on {new Date().toLocaleDateString()}
             </div>
             <div className="text-sm font-display font-bold text-white tracking-widest">
-              GIT-WRAPPED.COM
+              GITHUB-WRAPPED.COM
             </div>
           </div>
         </div>
